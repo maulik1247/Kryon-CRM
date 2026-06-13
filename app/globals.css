@@ -1,0 +1,179 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: light;
+    --background: 0 0% 100%;
+    --foreground: 198 44% 12%;
+    --card: 0 0% 100%;
+    --card-foreground: 198 44% 12%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 198 44% 12%;
+    --primary: 194 100% 47%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 194 40% 94%;
+    --secondary-foreground: 198 44% 17%;
+    --muted: 194 30% 96%;
+    --muted-foreground: 198 25% 40%;
+    --accent: 194 60% 94%;
+    --accent-foreground: 198 44% 17%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 194 20% 88%;
+    --input: 194 20% 88%;
+    --ring: 194 100% 47%;
+    --radius: 0.625rem;
+    --chart-1: 194 100% 47%;
+    --chart-2: 196 45% 35%;
+    --chart-3: 198 44% 25%;
+    --chart-4: 194 60% 65%;
+    --chart-5: 180 2% 83%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 198 44% 17%;
+    --sidebar-primary: 194 100% 47%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 194 50% 95%;
+    --sidebar-accent-foreground: 198 44% 17%;
+    --sidebar-border: 194 20% 90%;
+    --sidebar-ring: 194 100% 47%;
+    --motion-duration-fast: 150ms;
+    --motion-duration-base: 250ms;
+    --motion-duration-slow: 400ms;
+    --motion-ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --motion-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 0 0% 0%;
+    --foreground: 0 0% 98%;
+    --card: 198 44% 10%;
+    --card-foreground: 0 0% 98%;
+    --popover: 198 44% 10%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 194 100% 47%;
+    --primary-foreground: 0 0% 0%;
+    --secondary: 198 44% 17%;
+    --secondary-foreground: 194 40% 75%;
+    --muted: 198 40% 14%;
+    --muted-foreground: 194 25% 55%;
+    --accent: 198 44% 17%;
+    --accent-foreground: 194 60% 80%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 198 30% 20%;
+    --input: 198 30% 20%;
+    --ring: 194 100% 47%;
+    --chart-1: 194 100% 47%;
+    --chart-2: 196 45% 35%;
+    --chart-3: 198 44% 25%;
+    --chart-4: 194 60% 65%;
+    --chart-5: 180 2% 83%;
+    --sidebar-background: 0 0% 0%;
+    --sidebar-foreground: 194 30% 70%;
+    --sidebar-primary: 194 100% 47%;
+    --sidebar-primary-foreground: 0 0% 0%;
+    --sidebar-accent: 198 44% 14%;
+    --sidebar-accent-foreground: 194 100% 47%;
+    --sidebar-border: 198 30% 18%;
+    --sidebar-ring: 194 100% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans scroll-smooth;
+  }
+
+  body {
+    @apply min-h-screen bg-background font-sans text-foreground antialiased;
+    transition:
+      background-color var(--motion-duration-base) var(--motion-ease),
+      color var(--motion-duration-base) var(--motion-ease);
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display), "DM Sans", system-ui, sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .transition-smooth {
+    transition-property: color, background-color, border-color, box-shadow,
+      opacity, transform, filter;
+    transition-duration: var(--motion-duration-base);
+    transition-timing-function: var(--motion-ease);
+  }
+
+  .transition-smooth-fast {
+    transition-property: color, background-color, border-color, box-shadow,
+      opacity, transform;
+    transition-duration: var(--motion-duration-fast);
+    transition-timing-function: var(--motion-ease);
+  }
+
+  .page-enter {
+    animation: page-enter var(--motion-duration-slow) var(--motion-ease-out) both;
+  }
+
+  .interactive-lift {
+    @apply transition-smooth;
+  }
+
+  .interactive-lift:hover {
+    transform: translateY(-1px);
+  }
+
+  .interactive-lift:active {
+    transform: translateY(0);
+  }
+}
+
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes skeleton-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
