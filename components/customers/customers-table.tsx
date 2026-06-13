@@ -208,8 +208,6 @@ export function CustomersTable() {
         )}
         <CustomersMobileList
           customers={customers}
-          expandedId={expandedId}
-          onToggleExpanded={toggleExpanded}
           onEdit={openSheet}
           onDelete={(customer) => {
             setDeleteError("");

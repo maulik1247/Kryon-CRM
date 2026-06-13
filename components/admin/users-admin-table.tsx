@@ -22,6 +22,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth-provider";
+import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
+import { UsersAdminMobileList } from "./users-admin-mobile-list";
 import type { UserRole } from "@/lib/types";
 
 export function UsersAdminTable() {
@@ -109,66 +111,77 @@ export function UsersAdminTable() {
           </Button>
         </form>
 
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="w-[88px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell className="font-medium">
-                  {user.name}
-                  {user.id === currentUser.id && (
-                    <span className="ml-2 text-xs text-muted-foreground">
-                      (you)
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Select
-                    value={user.role}
-                    onValueChange={(value) =>
-                      updateUser(user.id, { role: value as UserRole })
-                    }
-                  >
-                    <SelectTrigger className="h-8 w-[120px]">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="admin">Admin</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={user.active ? "default" : "secondary"}>
-                    {user.active ? "Active" : "Inactive"}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 text-destructive hover:text-destructive"
-                    disabled={user.id === currentUser.id}
-                    onClick={() => handleRemove(user.id)}
-                    aria-label={`Remove ${user.name}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <UsersAdminMobileList
+          users={users}
+          currentUserId={currentUser.id}
+          onRoleChange={(userId, role) => updateUser(userId, { role })}
+          onRemove={handleRemove}
+        />
+
+        <div className="hidden md:block">
+          <MobileTableScroll>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="w-[88px] text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {users.map((user) => (
+                  <TableRow key={user.id}>
+                    <TableCell className="font-medium">
+                      {user.name}
+                      {user.id === currentUser.id && (
+                        <span className="ml-2 text-xs text-muted-foreground">
+                          (you)
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell>{user.email}</TableCell>
+                    <TableCell>
+                      <Select
+                        value={user.role}
+                        onValueChange={(value) =>
+                          updateUser(user.id, { role: value as UserRole })
+                        }
+                      >
+                        <SelectTrigger className="h-8 w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={user.active ? "default" : "secondary"}>
+                        {user.active ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive hover:text-destructive"
+                        disabled={user.id === currentUser.id}
+                        onClick={() => handleRemove(user.id)}
+                        aria-label={`Remove ${user.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </MobileTableScroll>
+        </div>
 
         {error && <p className="text-sm text-destructive">{error}</p>}
       </CardContent>

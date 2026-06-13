@@ -2,6 +2,10 @@
 
 import * as React from "react";
 import Link from "next/link";
+import { ListTodo } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -10,21 +14,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { TaskSheet } from "@/components/tasks/task-sheet";
+import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllTasksSorted } from "@/lib/deal-helpers";
-import {
-  getTaskStatusLabel,
-  isTaskOpen,
-} from "@/lib/task-constants";
+import { getTaskStatusLabel, isTaskOpen } from "@/lib/task-constants";
 import { filterTasksForUser, getUserName } from "@/lib/user-helpers";
 import { cn, formatDate } from "@/lib/utils";
-import { ListTodo } from "lucide-react";
 
 const TASK_PREVIEW_LIMIT = 8;
 
@@ -54,6 +52,12 @@ export function DashboardTasksCard() {
     setSheetOpen(true);
   };
 
+  const isOverdue = (task: (typeof previewTasks)[number]) => {
+    const dueDate = new Date(`${task.dueDate}T00:00:00`);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate < today;
+  };
+
   return (
     <>
       <Card>
@@ -70,63 +74,83 @@ export function DashboardTasksCard() {
               No open tasks right now.
             </p>
           ) : (
-            <MobileTableScroll>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Task</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Do by</TableHead>
-                    {isAdmin ? <TableHead>Assigned to</TableHead> : null}
-                    <TableHead>Deal</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {previewTasks.map((task) => {
-                    const deal = deals.find((entry) => entry.id === task.dealId);
-                    const customer = deal
-                      ? getCustomerById(deal.customerId)
-                      : undefined;
-                    const dueDate = new Date(`${task.dueDate}T00:00:00`);
-                    dueDate.setHours(0, 0, 0, 0);
-                    const isOverdue = dueDate < today;
+            <>
+              <TasksMobileList
+                tasks={previewTasks}
+                customerNameByDealId={(dealId) => {
+                  const deal = deals.find((entry) => entry.id === dealId);
+                  return deal ? getCustomerById(deal.customerId)?.name : undefined;
+                }}
+                addedByName={(userId) => getUserName(users, userId)}
+                assignedToName={(userId) => getUserName(users, userId)}
+                isOverdue={isOverdue}
+                onOpenTask={openTask}
+                showActions={false}
+                showStatusSelect={false}
+              />
 
-                    return (
-                      <TableRow
-                        key={task.id}
-                        className="cursor-pointer"
-                        onClick={() => openTask(task.id)}
-                      >
-                        <TableCell className="max-w-[200px] truncate font-medium">
-                          {task.title}
-                        </TableCell>
-                        <TableCell className="whitespace-nowrap">
-                          <Badge variant="secondary">
-                            {getTaskStatusLabel(task.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell
-                          className={cn(
-                            "whitespace-nowrap",
-                            isOverdue && "text-destructive"
-                          )}
-                        >
-                          {formatDate(task.dueDate)}
-                        </TableCell>
-                        {isAdmin ? (
-                          <TableCell className="max-w-[140px] truncate">
-                            {getUserName(users, task.assignedToUserId)}
-                          </TableCell>
-                        ) : null}
-                        <TableCell className="max-w-[160px] truncate text-muted-foreground">
-                          {customer?.name ?? task.dealId}
-                        </TableCell>
+              <div className="hidden md:block">
+                <MobileTableScroll>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Task</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Do by</TableHead>
+                        {isAdmin ? <TableHead>Assigned to</TableHead> : null}
+                        <TableHead>Deal</TableHead>
                       </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </MobileTableScroll>
+                    </TableHeader>
+                    <TableBody>
+                      {previewTasks.map((task) => {
+                        const deal = deals.find(
+                          (entry) => entry.id === task.dealId
+                        );
+                        const customer = deal
+                          ? getCustomerById(deal.customerId)
+                          : undefined;
+                        const dueDate = new Date(`${task.dueDate}T00:00:00`);
+                        dueDate.setHours(0, 0, 0, 0);
+                        const overdue = dueDate < today;
+
+                        return (
+                          <TableRow
+                            key={task.id}
+                            className="cursor-pointer"
+                            onClick={() => openTask(task.id)}
+                          >
+                            <TableCell className="max-w-[200px] truncate font-medium">
+                              {task.title}
+                            </TableCell>
+                            <TableCell className="whitespace-nowrap">
+                              <Badge variant="secondary">
+                                {getTaskStatusLabel(task.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell
+                              className={cn(
+                                "whitespace-nowrap",
+                                overdue && "text-destructive"
+                              )}
+                            >
+                              {formatDate(task.dueDate)}
+                            </TableCell>
+                            {isAdmin ? (
+                              <TableCell className="max-w-[140px] truncate">
+                                {getUserName(users, task.assignedToUserId)}
+                              </TableCell>
+                            ) : null}
+                            <TableCell className="max-w-[160px] truncate text-muted-foreground">
+                              {customer?.name ?? task.dealId}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </MobileTableScroll>
+              </div>
+            </>
           )}
 
           {tasks.length > TASK_PREVIEW_LIMIT ? (

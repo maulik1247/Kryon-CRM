@@ -27,6 +27,7 @@ import { InfoLabel } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
 import { DealSheet } from "@/components/deals/deal-sheet";
 import { TaskSheet } from "@/components/tasks/task-sheet";
+import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -124,7 +125,37 @@ export function TasksView() {
         actions={<AddTaskDialog />}
       />
 
-      <Card className="shadow-sm">
+      {tasks.length === 0 ? (
+        <div className="md:hidden">
+          <EmptyState
+            icon={ListTodo}
+            title="No tasks yet"
+            description="Create a task to plan the next step on a deal."
+            action={<AddTaskDialog />}
+          />
+        </div>
+      ) : (
+        <TasksMobileList
+          tasks={tasks}
+          customerNameByDealId={(dealId) => {
+            const deal = deals.find((entry) => entry.id === dealId);
+            return deal ? getCustomerById(deal.customerId)?.name : undefined;
+          }}
+          addedByName={(userId) => getUserName(users, userId)}
+          assignedToName={(userId) => getUserName(users, userId)}
+          isOverdue={(task) => {
+            const dueDate = new Date(`${task.dueDate}T00:00:00`);
+            dueDate.setHours(0, 0, 0, 0);
+            return isTaskOpen(task.status) && dueDate < today;
+          }}
+          onOpenTask={openTask}
+          onOpenDeal={openDeal}
+          onStatusChange={updateDealTaskStatus}
+          onDelete={(task) => deleteDealTask(task.id)}
+        />
+      )}
+
+      <Card className="hidden shadow-sm md:block">
         <MobileTableScroll>
           <Table>
             <TableHeader>

@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DealCard } from "./deal-card";
 import { DealSheet } from "@/components/deals/deal-sheet";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
+import { DealsMobileList } from "./deals-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getStageColumnStyle } from "@/lib/pipeline-styles";
 import type { Deal, PipelineStageConfig } from "@/lib/types";
@@ -194,7 +195,13 @@ export function KanbanBoard() {
           canOpen={(id) => Boolean(getDealById(id))}
         />
       </React.Suspense>
-      <div className="overflow-hidden rounded-lg border border-border/60 bg-background">
+      <DealsMobileList
+        deals={deals}
+        pipelineStages={pipelineStages}
+        onDealClick={handleDealClick}
+      />
+
+      <div className="hidden overflow-hidden rounded-lg border border-border/60 bg-background md:block">
         <ScrollArea className="w-full">
           <Kanban
             value={columns}

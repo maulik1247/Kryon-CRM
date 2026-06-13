@@ -20,6 +20,7 @@ import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { ContactSheet } from "./contact-sheet";
+import { ContactsMobileList } from "./contacts-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
 import type { Contact } from "@/lib/types";
 import { Star } from "lucide-react";
@@ -89,7 +90,35 @@ export function ContactsTable() {
       />
 
       <div className="space-y-4">
-        <Card className="shadow-sm">
+        {contacts.length === 0 ? (
+          <div className="md:hidden">
+            <EmptyState
+              icon={Users}
+              title="No contacts yet"
+              description="Add decision makers and champions for your OEM accounts."
+              action={
+                <Button onClick={() => openSheet(null)}>
+                  <Plus className="h-4 w-4" />
+                  Add Contact
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <ContactsMobileList
+            contacts={contacts}
+            customerName={(customerId) =>
+              getCustomerById(customerId)?.name
+            }
+            onOpen={openSheet}
+            onDelete={(contact) => {
+              setDeleteError("");
+              setDeleteContactRecord(contact);
+            }}
+          />
+        )}
+
+        <Card className="hidden shadow-sm md:block">
           <MobileTableScroll>
           <Table>
             <TableHeader>

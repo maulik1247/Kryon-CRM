@@ -20,6 +20,7 @@ import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { ProductSheet } from "./product-sheet";
+import { ProductsMobileList } from "./products-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
 import type { Product } from "@/lib/types";
 
@@ -88,7 +89,32 @@ export function ProductsTable() {
       />
 
       <div className="space-y-4">
-        <Card className="shadow-sm">
+        {products.length === 0 ? (
+          <div className="md:hidden">
+            <EmptyState
+              icon={Package}
+              title="No products yet"
+              description="Add BLDC controllers and related SKUs to use in deals."
+              action={
+                <Button onClick={() => openSheet(null)}>
+                  <Plus className="h-4 w-4" />
+                  Add Product
+                </Button>
+              }
+            />
+          </div>
+        ) : (
+          <ProductsMobileList
+            products={products}
+            onOpen={openSheet}
+            onDelete={(product) => {
+              setDeleteError("");
+              setDeleteProductRecord(product);
+            }}
+          />
+        )}
+
+        <Card className="hidden shadow-sm md:block">
           <MobileTableScroll>
           <Table>
             <TableHeader>

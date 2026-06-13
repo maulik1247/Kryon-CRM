@@ -32,6 +32,7 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { DealSheet } from "@/components/deals/deal-sheet";
 import { ActivitySheet } from "@/components/pipeline/activity-sheet";
+import { ActivityMobileList } from "@/components/pipeline/activity-mobile-list";
 import { LogActivityDialog } from "@/components/pipeline/log-activity-dialog";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -147,7 +148,37 @@ export function ActivityLogView() {
         actions={<LogActivityDialog />}
       />
 
-      <Card className="shadow-sm">
+      {activities.length === 0 ? (
+        <div className="md:hidden">
+          <EmptyState
+            icon={ScrollText}
+            title="No activity yet"
+            description="Log calls, meetings, and visits to keep deals moving."
+            action={<LogActivityDialog />}
+          />
+        </div>
+      ) : (
+        <ActivityMobileList
+          activities={activities}
+          icons={ACTIVITY_ICONS}
+          customerName={(dealId) => {
+            const deal = deals.find((entry) => entry.id === dealId);
+            return deal ? getCustomerById(deal.customerId)?.name : undefined;
+          }}
+          contactName={(contactId) =>
+            contactId ? getContactById(contactId)?.name : undefined
+          }
+          recordedBy={(userId) => getUserName(users, userId)}
+          assignedTo={(userId) =>
+            userId ? getUserName(users, userId) : undefined
+          }
+          onOpen={openActivity}
+          onOpenDeal={openDeal}
+          onDelete={deleteDealActivity}
+        />
+      )}
+
+      <Card className="hidden shadow-sm md:block">
           <MobileTableScroll>
             <Table>
               <TableHeader>

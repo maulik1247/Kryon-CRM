@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { AttendanceMobileList } from "@/components/attendance/attendance-mobile-list";
 import { InfoTip } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
 import { useAuth } from "@/lib/auth-provider";
@@ -93,7 +94,24 @@ export function AttendanceView() {
         }
       />
 
-      <Card className="shadow-sm">
+      {records.length === 0 ? (
+        <div className="md:hidden">
+          <EmptyState
+            icon={Clock}
+            title="No attendance records"
+            description="Your check-in history will appear here after your first punch."
+          />
+        </div>
+      ) : (
+        <AttendanceMobileList
+          records={records}
+          showUser={isAdmin}
+          userName={(userId) => getUserName(users, userId)}
+          getStatus={getAttendanceStatus}
+        />
+      )}
+
+      <Card className="hidden shadow-sm md:block">
           <MobileTableScroll>
             <Table>
               <TableHeader>
