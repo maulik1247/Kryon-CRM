@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, Shield, User, Zap } from "lucide-react";
+import { ChevronLeft, ChevronRight, Zap } from "lucide-react";
 import { useAuth } from "@/lib/auth-provider";
 import { getNavGroups } from "@/lib/nav-items";
 import { cn } from "@/lib/utils";
@@ -27,11 +27,18 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
     >
       <div
         className={cn(
-          "flex h-14 shrink-0 items-center border-b border-sidebar-border",
-          collapsed ? "justify-center gap-1 px-2" : "justify-between px-3"
+          "flex shrink-0 border-b border-sidebar-border",
+          collapsed
+            ? "flex-col items-center gap-2 px-2 py-3"
+            : "h-14 items-center justify-between px-3"
         )}
       >
-        <div className="flex min-w-0 items-center gap-2 overflow-hidden">
+        <div
+          className={cn(
+            "flex min-w-0 items-center gap-2",
+            collapsed && "justify-center"
+          )}
+        >
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Zap className="h-4 w-4" />
           </div>
