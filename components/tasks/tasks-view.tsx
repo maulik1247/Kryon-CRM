@@ -29,18 +29,20 @@ import { DealSheet } from "@/components/deals/deal-sheet";
 import { TaskSheet } from "@/components/tasks/task-sheet";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
 import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
+import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllTasksSorted } from "@/lib/deal-helpers";
 import { isTaskOpen, TASK_STATUS_OPTIONS } from "@/lib/task-constants";
-import { filterTasksForUser, getUserName } from "@/lib/user-helpers";
+import { filterTasksForUser, canUserAccessTask, canUserAccessDeal, getUserName } from "@/lib/user-helpers";
 import type { Deal, TaskStatus } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 type TaskFilter = "open" | "completed" | "all";
 
 export function TasksView() {
-  const { currentUser, isAdmin, users } = useAuth();
+  const { currentUser, users } = useAuth();
+  const seesAllDeals = canViewAllDeals(currentUser.role);
   const {
     dealTasks,
     deals,
@@ -59,18 +61,14 @@ export function TasksView() {
   const [dealSheetOpen, setDealSheetOpen] = React.useState(false);
 
   const tasks = React.useMemo(() => {
-    const visible = filterTasksForUser(
-      dealTasks,
-      currentUser.id,
-      isAdmin
-    );
+    const visible = filterTasksForUser(dealTasks, currentUser, users, deals);
     const sorted = getAllTasksSorted(visible);
     if (filter === "all") return sorted;
     if (filter === "completed") {
       return sorted.filter((task) => task.status === "completed");
     }
     return sorted.filter((task) => isTaskOpen(task.status));
-  }, [dealTasks, filter, currentUser.id, isAdmin]);
+  }, [dealTasks, filter, currentUser, users, deals]);
 
   const openTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -81,7 +79,7 @@ export function TasksView() {
 
   const openDeal = (dealId: string) => {
     const deal = getDealById(dealId);
-    if (!deal) return;
+    if (!deal || !canUserAccessDeal(deal, currentUser, users)) return;
     setSelectedDeal(deal);
     setDealSheetOpen(true);
   };
@@ -94,7 +92,12 @@ export function TasksView() {
       <React.Suspense fallback={null}>
         <OpenFromUrl
           onOpen={openTaskFromUrl}
-          canOpen={(id) => dealTasks.some((task) => task.id === id)}
+          canOpen={(id) => {
+            const task = dealTasks.find((entry) => entry.id === id);
+            return task
+              ? canUserAccessTask(task, currentUser, users, deals)
+              : false;
+          }}
         />
       </React.Suspense>
 
@@ -104,7 +107,7 @@ export function TasksView() {
           <span>
             <span className="font-medium text-foreground">{tasks.length}</span>{" "}
             {tasks.length === 1 ? "task" : "tasks"}
-            {!isAdmin ? " assigned to you" : ""}
+            {!seesAllDeals ? " assigned to you" : ""}
           </span>
         }
         filters={

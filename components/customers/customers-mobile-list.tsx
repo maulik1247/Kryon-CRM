@@ -1,16 +1,12 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { TableActions } from "@/components/shared/table-actions";
-import {
-  ExpandableMobileCard,
-  useExpandableCards,
-} from "@/components/shared/expandable-mobile-card";
 import { getVendorStatusVariant } from "@/lib/vendor-status";
 import type { Customer } from "@/lib/types";
-import { CustomerExpandedDetails } from "./customer-expanded-details";
 
 function plantLocationSummary(locations: string[]) {
   if (locations.length === 0) return "No plants";
@@ -20,26 +16,27 @@ function plantLocationSummary(locations: string[]) {
 
 interface CustomersMobileListProps {
   customers: Customer[];
-  onEdit: (customer: Customer) => void;
+  onOpen: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
 }
 
 export function CustomersMobileList({
   customers,
-  onEdit,
+  onOpen,
   onDelete,
 }: CustomersMobileListProps) {
-  const { expandedId, toggleExpanded } = useExpandableCards();
-
   return (
     <div className="space-y-3 md:hidden">
       {customers.map((customer) => (
-        <ExpandableMobileCard
+        <Card
           key={customer.id}
-          id={customer.id}
-          expandedId={expandedId}
-          onToggle={toggleExpanded}
-          summary={
+          className="overflow-hidden border-border/60 shadow-sm transition-smooth hover:shadow-md"
+        >
+          <button
+            type="button"
+            className="w-full p-4 text-left"
+            onClick={() => onOpen(customer)}
+          >
             <div className="space-y-3">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex min-w-0 items-start gap-3">
@@ -72,15 +69,17 @@ export function CustomersMobileList({
                 </Badge>
               </div>
             </div>
-          }
-          details={<CustomerExpandedDetails customer={customer} />}
-          actions={
+          </button>
+          <div
+            className="flex justify-end border-t px-3 py-2"
+            onClick={(event) => event.stopPropagation()}
+          >
             <TableActions
-              onEdit={() => onEdit(customer)}
+              onEdit={() => onOpen(customer)}
               onDelete={() => onDelete(customer)}
             />
-          }
-        />
+          </div>
+        </Card>
       ))}
     </div>
   );

@@ -1,10 +1,11 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Sparkles } from "lucide-react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -14,56 +15,46 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import { FormField } from "@/components/shared/form-field";
+import { FormSection } from "@/components/shared/form-section";
 import { InfoTip } from "@/components/shared/info-tip";
 import { FormSelect } from "@/components/shared/form-select";
+import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
+import { DatePicker } from "@/components/ui/date-picker";
 import { HELP } from "@/lib/help-content";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { useAuth } from "@/lib/auth-provider";
+import { canAssignDeals } from "@/lib/role-permissions";
+import { filterCustomersForUser } from "@/lib/user-helpers";
+import { CONFIDENCE_FORM_OPTIONS } from "@/lib/confidence-constants";
+import {
+  calculatePriceAdvantage,
+  getProductsForCategory,
+  suggestSupplierFromCustomerProduct,
+} from "@/lib/deal-form-helpers";
 import type { ConfidenceLevel, Deal, PipelineStage } from "@/lib/types";
 import { formatCurrency } from "@/lib/utils";
 
 function createDefaultForm(
   defaultStageId: PipelineStage,
-  defaultOwner: string
+  defaultOwner: string,
+  defaultProductCategory: string
 ) {
   return {
     customerId: "",
     contactId: "",
+    productCategory: defaultProductCategory,
     productId: "",
     quantity: "",
+    currentSupplierName: "",
     currentSupplierPrice: "",
     quotedPrice: "",
     confidence: "25" as `${ConfidenceLevel}`,
     stage: defaultStageId,
     owner: defaultOwner,
-    taskTitle: "",
-    taskDueDate: "",
+    nextAction: "",
+    nextActionDate: "",
   };
-}
-
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {description && (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        )}
-      </div>
-      {children}
-    </section>
-  );
 }
 
 function createDealId(existingDeals: Deal[]): string {
@@ -76,7 +67,7 @@ function createDealId(existingDeals: Deal[]): string {
 }
 
 export function AddLeadDialog() {
-  const { currentUser } = useAuth();
+  const { currentUser, users } = useAuth();
   const {
     customers,
     contacts,
@@ -88,10 +79,22 @@ export function AddLeadDialog() {
     masterData,
     getContactsByCustomerId,
     getProductById,
+    getCustomerById,
+    getSupplierById,
   } = useCrmData();
 
-  const openStages = pipelineStages.filter((stage) => stage.kind === "open");
-  const defaultStageId = openStages[0]?.id ?? pipelineStages[0]?.id ?? "";
+  const defaultStageId =
+    pipelineStages.find((stage) => stage.id === "lead-hot")?.id ??
+    pipelineStages.find((stage) => stage.kind === "open")?.id ??
+    pipelineStages[0]?.id ??
+    "";
+
+  const canAssign = canAssignDeals(currentUser.role);
+
+  const visibleCustomers = React.useMemo(
+    () => filterCustomersForUser(customers, currentUser, users),
+    [customers, currentUser, users]
+  );
 
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState(() => {
@@ -99,54 +102,90 @@ export function AddLeadDialog() {
     return {
       ...createDefaultForm(
         defaultStageId,
-        masterData.accountOwners[0] ?? ""
+        currentUser.name,
+        firstProduct?.motorControllerType ?? ""
       ),
-      customerId: customers[0]?.id ?? "",
+      customerId: visibleCustomers[0]?.id ?? "",
       productId: firstProduct?.id ?? "",
       quotedPrice: firstProduct ? String(firstProduct.sellingPrice) : "",
       currentSupplierPrice: firstProduct
         ? String(Math.round(firstProduct.sellingPrice * 1.12))
         : "",
-      taskDueDate: new Date().toISOString().split("T")[0],
+      nextActionDate: new Date().toISOString().split("T")[0],
     };
   });
 
+  const selectedCustomer = getCustomerById(form.customerId);
   const customerContacts = React.useMemo(
     () =>
       form.customerId ? getContactsByCustomerId(form.customerId) : [],
     [form.customerId, getContactsByCustomerId]
   );
-
+  const categoryProducts = React.useMemo(
+    () => getProductsForCategory(products, form.productCategory),
+    [products, form.productCategory]
+  );
   const selectedProduct = getProductById(form.productId);
   const quantity = Number(form.quantity) || 0;
   const quotedPrice = Number(form.quotedPrice) || 0;
+  const supplierPrice = Number(form.currentSupplierPrice) || 0;
   const estimatedValue = quantity * quotedPrice;
+  const priceAdvantage = calculatePriceAdvantage(supplierPrice, quotedPrice);
 
   React.useEffect(() => {
-    if (!form.customerId && customers[0]) {
-      setForm((prev) => ({ ...prev, customerId: customers[0].id }));
+    if (!form.customerId && visibleCustomers[0]) {
+      setForm((prev) => ({ ...prev, customerId: visibleCustomers[0].id }));
     }
-  }, [customers, form.customerId]);
+  }, [visibleCustomers, form.customerId]);
 
   React.useEffect(() => {
-    if (!form.productId && products[0]) {
-      setForm((prev) => ({
-        ...prev,
-        productId: products[0].id,
-        quotedPrice: String(products[0].sellingPrice),
-        currentSupplierPrice: String(Math.round(products[0].sellingPrice * 1.12)),
-      }));
-    }
-  }, [products, form.productId]);
-
-  React.useEffect(() => {
-    const validContact = customerContacts.some((c) => c.id === form.contactId);
+    const validContact = customerContacts.some(
+      (contact) => contact.id === form.contactId
+    );
     if (!validContact) {
       const primary =
-        customerContacts.find((c) => c.isPrimary) ?? customerContacts[0];
+        customerContacts.find((contact) => contact.isPrimary) ??
+        customerContacts[0];
       setForm((prev) => ({ ...prev, contactId: primary?.id ?? "" }));
     }
   }, [customerContacts, form.contactId]);
+
+  React.useEffect(() => {
+    const validProduct = categoryProducts.some(
+      (product) => product.id === form.productId
+    );
+    if (!validProduct) {
+      const nextProduct = categoryProducts[0];
+      setForm((prev) => ({
+        ...prev,
+        productId: nextProduct?.id ?? "",
+        quotedPrice: nextProduct
+          ? String(nextProduct.sellingPrice)
+          : prev.quotedPrice,
+        currentSupplierPrice: nextProduct
+          ? String(Math.round(nextProduct.sellingPrice * 1.12))
+          : prev.currentSupplierPrice,
+      }));
+    }
+  }, [categoryProducts, form.productId]);
+
+  React.useEffect(() => {
+    if (!form.productId || !selectedCustomer) return;
+
+    const suggestion = suggestSupplierFromCustomerProduct(
+      selectedCustomer,
+      form.productId,
+      (supplierId) => getSupplierById(supplierId)?.name
+    );
+    if (!suggestion) return;
+
+    setForm((prev) => ({
+      ...prev,
+      currentSupplierName: prev.currentSupplierName || suggestion.name,
+      currentSupplierPrice:
+        prev.currentSupplierPrice || String(suggestion.price || ""),
+    }));
+  }, [form.productId, selectedCustomer, getSupplierById]);
 
   const update = (field: keyof typeof form, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -157,15 +196,16 @@ export function AddLeadDialog() {
     setForm({
       ...createDefaultForm(
         defaultStageId,
-        masterData.accountOwners[0] ?? ""
+        currentUser.name,
+        firstProduct?.motorControllerType ?? ""
       ),
-      customerId: customers[0]?.id ?? "",
+      customerId: visibleCustomers[0]?.id ?? "",
       productId: firstProduct?.id ?? "",
       quotedPrice: firstProduct ? String(firstProduct.sellingPrice) : "",
       currentSupplierPrice: firstProduct
         ? String(Math.round(firstProduct.sellingPrice * 1.12))
         : "",
-      taskDueDate: new Date().toISOString().split("T")[0],
+      nextActionDate: new Date().toISOString().split("T")[0],
     });
   };
 
@@ -180,22 +220,23 @@ export function AddLeadDialog() {
       productId: form.productId,
       quantity,
       estimatedAnnualValue: estimatedValue,
-      currentSupplierPrice: Number(form.currentSupplierPrice) || 0,
+      currentSupplierName: form.currentSupplierName.trim(),
+      currentSupplierPrice: supplierPrice,
       quotedPrice,
       confidence: Number(form.confidence) as ConfidenceLevel,
       stage: form.stage,
       stageEnteredAt: today,
       lastActivityAt: today,
-      owner: form.owner,
+      owner: canAssign ? form.owner : currentUser.name,
     };
 
     addDeal(deal);
 
-    if (form.taskTitle.trim()) {
+    if (form.nextAction.trim()) {
       addDealTask({
         dealId: deal.id,
-        title: form.taskTitle.trim(),
-        dueDate: form.taskDueDate || today,
+        title: form.nextAction.trim(),
+        dueDate: form.nextActionDate || today,
         createdByUserId: currentUser.id,
         assignedToUserId: currentUser.id,
         assignerName: currentUser.name,
@@ -218,113 +259,142 @@ export function AddLeadDialog() {
       <DialogTrigger asChild>
         <Button className="gap-2 shadow-sm">
           <Plus className="h-4 w-4" />
-          Add Lead
+          Create Deal
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-2xl gap-0 p-0 sm:max-h-[90vh]">
-        <div className="border-b bg-muted/30 px-6 py-5">
-          <DialogHeader className="space-y-2 text-left">
-            <div className="flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                <Sparkles className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <DialogTitle>Add New Lead</DialogTitle>
-                <DialogDescription className="mt-1">
-                  Create a new deal and choose its starting stage.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-        </div>
+      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:overflow-hidden sm:rounded-xl">
+        <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
+          <DialogTitle className="font-display">Create a Deal</DialogTitle>
+          <DialogDescription>
+            New opportunity linked to customer, product, and pipeline stage.
+          </DialogDescription>
+        </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6 overflow-y-auto px-6 py-5">
-          <FormSection
-            title="Opportunity"
-            description="Link the lead to a customer, contact, and product."
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Customer" htmlFor="lead-customer">
-                <FormSelect
-                  id="lead-customer"
+        <form
+          onSubmit={handleSubmit}
+          className="flex min-h-0 flex-1 flex-col overflow-hidden"
+        >
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-4">
+          <FormSection title="Customer">
+            <div className="space-y-4">
+              <FormField label="Customer name" htmlFor="deal-customer">
+                <CustomerSearchSelect
+                  id="deal-customer"
+                  customers={visibleCustomers}
+                  contacts={contacts}
                   value={form.customerId}
-                  onValueChange={(v) => update("customerId", v)}
-                  disabled={customers.length === 0}
-                  placeholder="Select customer"
-                  options={customers.map((c) => ({
-                    value: c.id,
-                    label: c.name,
-                  }))}
+                  onValueChange={(customerId) => update("customerId", customerId)}
+                  disabled={visibleCustomers.length === 0}
                 />
               </FormField>
-              <FormField label="Contact" htmlFor="lead-contact">
+              <FormField label="Linked contact person" htmlFor="deal-contact">
                 <FormSelect
-                  id="lead-contact"
+                  id="deal-contact"
                   value={form.contactId}
-                  onValueChange={(v) => update("contactId", v)}
+                  onValueChange={(value) => update("contactId", value)}
                   disabled={customerContacts.length === 0}
                   placeholder="Select contact"
-                  options={customerContacts.map((c) => ({
-                    value: c.id,
-                    label: `${c.name}${c.isPrimary ? " (Primary)" : ""}`,
+                  options={customerContacts.map((contact) => ({
+                    value: contact.id,
+                    label: `${contact.name}${contact.isPrimary ? " (Primary)" : ""}`,
                   }))}
                 />
               </FormField>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Product" htmlFor="lead-product">
+            <FormField label="OEM segment" htmlFor="deal-oem-segment">
+              <Input
+                id="deal-oem-segment"
+                readOnly
+                value={selectedCustomer?.oemSegment ?? ""}
+                placeholder="Select a customer"
+                className="bg-muted/30"
+              />
+            </FormField>
+          </FormSection>
+
+          <FormSection title="Product selection">
+            <div className="space-y-4">
+              <FormField label="Product category" htmlFor="deal-product-category">
                 <FormSelect
-                  id="lead-product"
+                  id="deal-product-category"
+                  value={form.productCategory}
+                  onValueChange={(value) => update("productCategory", value)}
+                  disabled={masterData.productTypes.length === 0}
+                  placeholder="Select category"
+                  options={masterData.productTypes.map((type) => ({
+                    value: type,
+                    label: type,
+                  }))}
+                />
+              </FormField>
+              <FormField label="Specific SKU" htmlFor="deal-product">
+                <FormSelect
+                  id="deal-product"
                   value={form.productId}
-                  onValueChange={(v) => {
-                    const product = products.find((p) => p.id === v);
+                  onValueChange={(value) => {
+                    const product = products.find((entry) => entry.id === value);
                     setForm((prev) => ({
                       ...prev,
-                      productId: v,
+                      productId: value,
                       quotedPrice: product
                         ? String(product.sellingPrice)
                         : prev.quotedPrice,
                       currentSupplierPrice: product
                         ? String(Math.round(product.sellingPrice * 1.12))
                         : prev.currentSupplierPrice,
+                      currentSupplierName: "",
                     }));
                   }}
-                  disabled={products.length === 0}
-                  placeholder="Select product"
-                  options={products.map((p) => ({
-                    value: p.id,
-                    label: `${p.sku} — ${p.model}`,
+                  disabled={categoryProducts.length === 0}
+                  placeholder="Select SKU"
+                  options={categoryProducts.map((product) => ({
+                    value: product.id,
+                    label: `${product.sku} — ${product.model}`,
                   }))}
                 />
               </FormField>
-              <FormField label="Annual Quantity" htmlFor="lead-quantity">
-                <Input
-                  id="lead-quantity"
-                  type="number"
-                  min={1}
-                  required
-                  placeholder="e.g. 50000"
-                  value={form.quantity}
-                  onChange={(e) => update("quantity", e.target.value)}
-                />
-              </FormField>
             </div>
+            <FormField label="Quantity required (pcs)" htmlFor="deal-quantity">
+              <Input
+                id="deal-quantity"
+                type="number"
+                min={1}
+                required
+                placeholder="e.g. 50000"
+                value={form.quantity}
+                onChange={(e) => update("quantity", e.target.value)}
+              />
+            </FormField>
+            {estimatedValue > 0 ? (
+              <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
+                <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
+                  Estimated annual value (INR)
+                  <InfoTip content={HELP.estimatedValue} />
+                </span>
+                <span className="font-display text-lg font-semibold text-primary">
+                  {formatCurrency(estimatedValue)}
+                </span>
+              </div>
+            ) : null}
           </FormSection>
 
-          <Separator />
-
-          <FormSection
-            title="Pricing & Confidence"
-            description="Set pricing assumptions and initial win probability."
-          >
-            <div className="grid gap-4 sm:grid-cols-3">
+          <FormSection title="Pricing">
+            <FormField label="Current supplier" htmlFor="deal-current-supplier">
+              <Input
+                id="deal-current-supplier"
+                value={form.currentSupplierName}
+                onChange={(e) => update("currentSupplierName", e.target.value)}
+                placeholder="Who supplies this product today"
+              />
+            </FormField>
+            <div className="space-y-4">
               <FormField
-                label="Supplier Price (₹)"
-                htmlFor="supplier-price"
+                label="Current supplier price (INR/unit)"
+                htmlFor="deal-supplier-price"
                 info={HELP.supplierPrice}
               >
                 <Input
-                  id="supplier-price"
+                  id="deal-supplier-price"
                   type="number"
                   min={0}
                   required
@@ -334,9 +404,9 @@ export function AddLeadDialog() {
                   }
                 />
               </FormField>
-              <FormField label="Our Quote (₹)" htmlFor="quoted-price">
+              <FormField label="Our quoted price (INR/unit)" htmlFor="deal-quote">
                 <Input
-                  id="quoted-price"
+                  id="deal-quote"
                   type="number"
                   min={0}
                   required
@@ -344,71 +414,41 @@ export function AddLeadDialog() {
                   onChange={(e) => update("quotedPrice", e.target.value)}
                 />
               </FormField>
-              <FormField
-                label="Confidence"
-                htmlFor="confidence"
-                info={HELP.confidence}
-              >
-                <FormSelect
-                  id="confidence"
-                  value={form.confidence}
-                  onValueChange={(v) => update("confidence", v)}
-                  options={[
-                    { value: "100", label: "100% — Certain" },
-                    { value: "75", label: "75% — Likely" },
-                    { value: "50", label: "50% — Possible" },
-                    { value: "25", label: "25% — Early" },
-                    { value: "0", label: "0% — Unlikely" },
-                  ]}
+              <FormField label="Price advantage (%)" htmlFor="deal-price-advantage">
+                <Input
+                  id="deal-price-advantage"
+                  readOnly
+                  value={`${priceAdvantage.toFixed(1)}%`}
+                  className="bg-muted/30"
                 />
               </FormField>
             </div>
-
-            {estimatedValue > 0 && (
-              <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-3">
-                <span className="inline-flex items-center gap-1 text-sm text-muted-foreground">
-                  Estimated annual value
-                  <InfoTip content={HELP.estimatedValue} />
-                </span>
-                <span className="font-display text-lg font-semibold text-primary">
-                  {formatCurrency(estimatedValue)}
-                </span>
-              </div>
-            )}
           </FormSection>
 
-          <Separator />
-
-          <FormSection
-            title="Assignment"
-            description="Who owns this deal and where it starts."
-          >
-            <div className="grid gap-4 sm:grid-cols-2">
+          <FormSection title="Pipeline">
+            <div className="space-y-4">
               <FormField
-                label="Deal Owner"
-                htmlFor="lead-owner"
-                info={HELP.dealOwner}
+                label="Confidence level"
+                htmlFor="deal-confidence"
+                info={HELP.confidence}
               >
                 <FormSelect
-                  id="lead-owner"
-                  value={form.owner}
-                  onValueChange={(v) => update("owner", v)}
-                  options={masterData.accountOwners.map((owner) => ({
-                    value: owner,
-                    label: owner,
-                  }))}
+                  id="deal-confidence"
+                  value={form.confidence}
+                  onValueChange={(value) => update("confidence", value)}
+                  options={CONFIDENCE_FORM_OPTIONS}
                 />
               </FormField>
               <FormField
-                label="Starting Stage"
-                htmlFor="lead-stage"
+                label="Current stage"
+                htmlFor="deal-stage"
                 info={HELP.startingStage}
               >
                 <FormSelect
-                  id="lead-stage"
+                  id="deal-stage"
                   value={form.stage}
-                  onValueChange={(v) => update("stage", v)}
-                  options={openStages.map((stage) => ({
+                  onValueChange={(value) => update("stage", value)}
+                  options={pipelineStages.map((stage) => ({
                     value: stage.id,
                     label: stage.name,
                   }))}
@@ -417,55 +457,64 @@ export function AddLeadDialog() {
             </div>
           </FormSection>
 
-          <Separator />
-
-          <FormSection
-            title="First task"
-            description="Optional — add a follow-up task for this deal."
-          >
-            <FormField label="What to do" htmlFor="lead-task-title">
+          <FormSection title="Log">
+            <div className="space-y-4">
+              <FormField label="Next action" htmlFor="deal-next-action">
               <Textarea
-                id="lead-task-title"
+                id="deal-next-action"
                 rows={2}
                 placeholder="e.g. Schedule intro call with procurement team"
-                value={form.taskTitle}
-                onChange={(e) => update("taskTitle", e.target.value)}
+                value={form.nextAction}
+                onChange={(e) => update("nextAction", e.target.value)}
               />
             </FormField>
-            <FormField label="Do by" htmlFor="lead-task-due" info={HELP.doBy}>
-              <Input
-                id="lead-task-due"
-                type="date"
-                value={form.taskDueDate}
-                onChange={(e) => update("taskDueDate", e.target.value)}
-              />
-            </FormField>
+            <FormField label="Next action date" htmlFor="deal-next-action-date">
+                <DatePicker
+                  value={form.nextActionDate}
+                  onChange={(value) => update("nextActionDate", value)}
+                  placeholder="Select date"
+                />
+              </FormField>
+              <FormField
+                label="Deal owner"
+                htmlFor="deal-owner"
+                info={HELP.dealOwner}
+              >
+                {canAssign ? (
+                  <FormSelect
+                    id="deal-owner"
+                    value={form.owner}
+                    onValueChange={(value) => update("owner", value)}
+                    options={masterData.accountOwners.map((owner) => ({
+                      value: owner,
+                      label: owner,
+                    }))}
+                  />
+                ) : (
+                  <Input
+                    id="deal-owner"
+                    readOnly
+                    value={currentUser.name}
+                    className="bg-muted/30"
+                  />
+                )}
+              </FormField>
+            </div>
           </FormSection>
-
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-muted/20 px-4 py-3">
-            <span className="text-xs text-muted-foreground">Deal entry</span>
-            <Badge variant="default">
-              {pipelineStages.find((s) => s.id === form.stage)?.name ??
-                form.stage}
-            </Badge>
-            {selectedProduct && (
-              <Badge variant="outline">{selectedProduct.sku}</Badge>
-            )}
           </div>
 
-          <DialogFooter className="border-t pt-4 sm:justify-between">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                resetForm();
-                setOpen(false);
-              }}
-            >
-              Cancel
-            </Button>
+          <DialogFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
+            <DialogClose asChild>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={resetForm}
+              >
+                Cancel
+              </Button>
+            </DialogClose>
             <Button type="submit" disabled={!canSubmit}>
-              Create Lead
+              Create Deal
             </Button>
           </DialogFooter>
         </form>

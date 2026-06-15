@@ -38,6 +38,40 @@ export interface RegistrationDocument {
   size?: number;
 }
 
+export type DocumentExchangeType =
+  | "NDA (Mutual)"
+  | "NDA (One-way)"
+  | "Technical Spec Sheet"
+  | "Product Datasheet"
+  | "Vendor Registration Form"
+  | "BIS Certificate"
+  | "Test Report"
+  | "Brochure / Catalog"
+  | "Other";
+
+export type DocumentDirection = "Sent to Customer" | "Received from Customer";
+
+export type DocumentExchangeStatus = "Draft" | "Sent" | "Signed" | "Expired";
+
+export type SignedCopyStatus = "Yes" | "No" | "Pending";
+
+export interface DocumentExchange {
+  id: string;
+  customerId: string;
+  dealId?: string;
+  documentType: DocumentExchangeType;
+  direction: DocumentDirection;
+  exchangeDate: string;
+  status: DocumentExchangeStatus;
+  files: RegistrationDocument[];
+  validityExpiryDate?: string;
+  versionNumber?: string;
+  signedCopyUploaded: SignedCopyStatus;
+  remarks?: string;
+  createdByUserId: string;
+  createdAt: string;
+}
+
 export type ProductType = string;
 
 export type MotorControllerType =
@@ -66,14 +100,30 @@ export interface ProductSpecDocument {
   size?: number;
 }
 
-export interface CustomerProductSupplier {
+export type SupplierType =
+  | "Motor Manufacturer"
+  | "Controller Manufacturer"
+  | "Trading House"
+  | "Captive OEM"
+  | "Other";
+
+export interface Supplier {
+  id: string;
   name: string;
+  type: SupplierType;
+  region: string;
+  notes?: string;
+}
+
+export interface CustomerProductSupplier {
+  supplierId: string;
   volume: string;
   purchasePrice: number;
 }
 
 export interface CustomerProductDetails {
   id: string;
+  productId: string;
   productSkuOrModel: string;
   annualQuantityPcs?: number;
   monthlyOfftakePcs?: number;
@@ -85,7 +135,15 @@ export interface CustomerProductDetails {
   secondarySupplier?: CustomerProductSupplier;
 }
 
-export type UserRole = "admin" | "sales";
+export type UserRole =
+  | "sales_rep"
+  | "sales_manager"
+  | "commercial_manager"
+  | "vp_director"
+  | "rnd"
+  | "quality"
+  | "finance"
+  | "admin";
 
 export interface CrmUser {
   id: string;
@@ -93,6 +151,7 @@ export interface CrmUser {
   email: string;
   role: UserRole;
   active: boolean;
+  reportsToUserId?: string;
 }
 
 export type MasterDataListKey =
@@ -191,6 +250,7 @@ export interface Deal {
   productId: string;
   quantity: number;
   estimatedAnnualValue: number;
+  currentSupplierName: string;
   currentSupplierPrice: number;
   quotedPrice: number;
   confidence: ConfidenceLevel;
@@ -202,13 +262,60 @@ export interface Deal {
 
 export type DealActivityType = "call" | "meeting" | "email" | "visit" | "note";
 
+export type VisitType =
+  | "In-Person"
+  | "Virtual / Video Call"
+  | "Phone Call";
+
+export type MeetingPurpose =
+  | "Discovery"
+  | "Follow-up"
+  | "Sample Review"
+  | "Negotiation"
+  | "Plant Audit"
+  | "Relationship"
+  | "Other";
+
+export type CustomerSentiment =
+  | "Very Positive"
+  | "Positive"
+  | "Neutral"
+  | "Negative"
+  | "Very Negative";
+
+export interface MeetingCustomerAttendee {
+  contactId: string;
+  name: string;
+  designation: string;
+  department: string;
+}
+
+export interface MeetingActionItem {
+  id: string;
+  description: string;
+  ownerUserId: string;
+  deadline: string;
+}
+
 export interface DealActivity {
   id: string;
   dealId: string;
+  customerId?: string;
   type: DealActivityType;
   occurredAt: string;
+  visitType?: VisitType;
+  purpose?: MeetingPurpose;
   contactId?: string;
+  ourAttendeeIds?: string[];
+  customerAttendees?: MeetingCustomerAttendee[];
   summary: string;
+  keyDecisions?: string;
+  actionItems?: MeetingActionItem[];
+  confidenceUpdated?: ConfidenceLevel;
+  customerSentiment?: CustomerSentiment;
+  competitorSupplierId?: string;
+  attachments?: RegistrationDocument[];
+  nextFollowUpDate?: string;
   outcome?: string;
   loggedByUserId: string;
   assignedToUserId?: string;

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getThisWeekTasks } from "@/lib/deal-helpers";
-import { filterTasksForUser } from "@/lib/user-helpers";
+import { filterDealsForUser, filterTasksForUser } from "@/lib/user-helpers";
 import { EmptyState } from "@/components/shared/empty-state";
 import { InfoLabel } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
@@ -15,17 +15,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function DueThisWeekCard() {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, users } = useAuth();
   const { deals, dealTasks, pipelineStages, getCustomerById } = useCrmData();
 
-  const visibleTasks = filterTasksForUser(
-    dealTasks,
-    currentUser.id,
-    isAdmin
-  );
+  const visibleDeals = filterDealsForUser(deals, currentUser, users);
+  const visibleTasks = filterTasksForUser(dealTasks, currentUser, users, deals);
 
   const tasks = getThisWeekTasks(
-    deals,
+    visibleDeals,
     visibleTasks,
     pipelineStages,
     (customerId) => getCustomerById(customerId)?.name

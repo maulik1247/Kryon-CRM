@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowRight,
   Building2,
+  Factory,
   Kanban,
   ListTodo,
   Package,
@@ -38,6 +39,7 @@ const TYPE_ICONS: Record<
   task: ListTodo,
   activity: ScrollText,
   product: Package,
+  supplier: Factory,
 };
 
 const TYPE_ICON_STYLES: Record<SearchResultType, string> = {
@@ -47,6 +49,7 @@ const TYPE_ICON_STYLES: Record<SearchResultType, string> = {
   task: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
   activity: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
   product: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
+  supplier: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
 };
 
 const QUICK_HINTS = [
@@ -86,12 +89,13 @@ function HighlightMatch({
 
 export function GlobalSearch() {
   const router = useRouter();
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, users } = useAuth();
   const {
     customers,
     contacts,
     deals,
     products,
+    suppliers,
     dealTasks,
     dealActivities,
     pipelineStages,
@@ -112,13 +116,13 @@ export function GlobalSearch() {
         contacts,
         deals,
         products,
+        suppliers,
         dealTasks,
         dealActivities,
         pipelineStages,
         getCustomerById,
-        currentUserId: currentUser.id,
-        currentUserName: currentUser.name,
-        isAdmin,
+        currentUser,
+        users,
       }),
     [
       query,
@@ -126,13 +130,13 @@ export function GlobalSearch() {
       contacts,
       deals,
       products,
+      suppliers,
       dealTasks,
       dealActivities,
       pipelineStages,
       getCustomerById,
-      currentUser.id,
-      currentUser.name,
-      isAdmin,
+      currentUser,
+      users,
     ]
   );
 

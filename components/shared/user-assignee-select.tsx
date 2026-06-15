@@ -8,6 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { canAssignDeals, getRoleLabel } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { getActiveUsers } from "@/lib/user-helpers";
 
@@ -28,10 +29,11 @@ export function UserAssigneeSelect({
   disabled = false,
   adminOnly = false,
 }: UserAssigneeSelectProps) {
-  const { users, currentUser, isAdmin } = useAuth();
+  const { users, currentUser } = useAuth();
+  const canAssign = canAssignDeals(currentUser.role);
   const activeUsers = getActiveUsers(users);
 
-  if (adminOnly && !isAdmin) {
+  if (adminOnly && !canAssign) {
     return (
       <div className="space-y-2">
         <Label htmlFor={id}>{label}</Label>
@@ -48,7 +50,7 @@ export function UserAssigneeSelect({
       <Select
         value={value}
         onValueChange={onValueChange}
-        disabled={disabled || (!isAdmin && activeUsers.length <= 1)}
+        disabled={disabled || (!canAssign && activeUsers.length <= 1)}
       >
         <SelectTrigger id={id}>
           <SelectValue placeholder="Select user" />
@@ -57,7 +59,7 @@ export function UserAssigneeSelect({
           {activeUsers.map((user) => (
             <SelectItem key={user.id} value={user.id}>
               {user.name}
-              {user.role === "admin" ? " (Admin)" : ""}
+              {user.role !== "sales_rep" ? ` (${getRoleLabel(user.role)})` : ""}
             </SelectItem>
           ))}
         </SelectContent>

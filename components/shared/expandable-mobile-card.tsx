@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { ChevronRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -35,16 +34,10 @@ export function ExpandableMobileCard({
     >
       <button
         type="button"
-        className="flex w-full items-start gap-3 p-4 text-left"
+        className="w-full p-4 text-left"
         onClick={() => onToggle(id)}
       >
-        <ChevronRight
-          className={cn(
-            "mt-1 h-4 w-4 shrink-0 text-muted-foreground transition-transform",
-            isExpanded && "rotate-90"
-          )}
-        />
-        <div className="min-w-0 flex-1">{summary}</div>
+        {summary}
       </button>
 
       {isExpanded && details ? (

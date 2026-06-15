@@ -23,17 +23,28 @@ import {
 } from "@/components/ui/select";
 import { UserAssigneeSelect } from "@/components/shared/user-assignee-select";
 import { useCrmData } from "@/lib/crm-data-provider";
+import { canAssignDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
+import { filterDealsForUser } from "@/lib/user-helpers";
 
 interface AddTaskDialogProps {
   defaultDealId?: string;
 }
 
 export function AddTaskDialog({ defaultDealId }: AddTaskDialogProps) {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, users } = useAuth();
+  const canAssign = canAssignDeals(currentUser.role);
   const { deals, addDealTask, getCustomerById } = useCrmData();
+
+  const visibleDeals = React.useMemo(
+    () => filterDealsForUser(deals, currentUser, users),
+    [deals, currentUser, users]
+  );
+
   const [open, setOpen] = React.useState(false);
-  const [dealId, setDealId] = React.useState(defaultDealId ?? deals[0]?.id ?? "");
+  const [dealId, setDealId] = React.useState(
+    defaultDealId ?? visibleDeals[0]?.id ?? ""
+  );
   const today = new Date().toISOString().split("T")[0];
   const [title, setTitle] = React.useState("");
   const [dueDate, setDueDate] = React.useState(today);
@@ -46,14 +57,24 @@ export function AddTaskDialog({ defaultDealId }: AddTaskDialogProps) {
   }, [defaultDealId]);
 
   React.useEffect(() => {
-    if (!dealId && deals[0]) setDealId(deals[0].id);
-  }, [dealId, deals]);
+    if (!dealId && visibleDeals[0]) setDealId(visibleDeals[0].id);
+  }, [dealId, visibleDeals]);
 
   React.useEffect(() => {
-    if (!isAdmin) {
+    if (
+      dealId &&
+      !visibleDeals.some((deal) => deal.id === dealId) &&
+      visibleDeals[0]
+    ) {
+      setDealId(visibleDeals[0].id);
+    }
+  }, [dealId, visibleDeals]);
+
+  React.useEffect(() => {
+    if (!canAssign) {
       setAssignedToUserId(currentUser.id);
     }
-  }, [currentUser.id, isAdmin]);
+  }, [currentUser.id, canAssign]);
 
   const handleAdd = () => {
     if (!title.trim() || !dealId) return;
@@ -63,7 +84,7 @@ export function AddTaskDialog({ defaultDealId }: AddTaskDialogProps) {
       title: title.trim(),
       dueDate,
       createdByUserId: currentUser.id,
-      assignedToUserId: isAdmin ? assignedToUserId : currentUser.id,
+      assignedToUserId: canAssign ? assignedToUserId : currentUser.id,
       assignerName: currentUser.name,
     });
 
@@ -85,7 +106,7 @@ export function AddTaskDialog({ defaultDealId }: AddTaskDialogProps) {
         <DialogHeader>
           <DialogTitle>Add task</DialogTitle>
           <DialogDescription>
-            {isAdmin
+            {canAssign
               ? "Create a task and assign it to a team member."
               : "Create a task for yourself on a deal."}
           </DialogDescription>
@@ -106,7 +127,7 @@ export function AddTaskDialog({ defaultDealId }: AddTaskDialogProps) {
                 <SelectValue placeholder="Select a deal" />
               </SelectTrigger>
               <SelectContent>
-                {deals.map((deal) => {
+                {visibleDeals.map((deal) => {
                   const customer = getCustomerById(deal.customerId);
                   return (
                     <SelectItem key={deal.id} value={deal.id}>

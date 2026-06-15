@@ -17,10 +17,11 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { UserAssigneeSelect } from "@/components/shared/user-assignee-select";
+import { canAssignDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { TASK_STATUS_OPTIONS } from "@/lib/task-constants";
-import { getUserName } from "@/lib/user-helpers";
+import { getUserName, filterDealsForUser, canUserAccessTask } from "@/lib/user-helpers";
 import type { DealTask, TaskStatus } from "@/lib/types";
 
 interface TaskSheetProps {
@@ -54,7 +55,8 @@ export function TaskSheet({
   onOpenChange,
   onViewDeal,
 }: TaskSheetProps) {
-  const { currentUser, isAdmin, users } = useAuth();
+  const { currentUser, users } = useAuth();
+  const canAssign = canAssignDeals(currentUser.role);
   const {
     dealTasks,
     deals,
@@ -67,6 +69,20 @@ export function TaskSheet({
   const task = taskId
     ? dealTasks.find((entry) => entry.id === taskId)
     : undefined;
+
+  const visibleDeals = React.useMemo(
+    () => filterDealsForUser(deals, currentUser, users),
+    [deals, currentUser, users]
+  );
+
+  const hasAccess =
+    !task || canUserAccessTask(task, currentUser, users, deals);
+
+  React.useEffect(() => {
+    if (open && task && !hasAccess) {
+      onOpenChange(false);
+    }
+  }, [open, task, hasAccess, onOpenChange]);
 
   const [form, setForm] = React.useState<TaskFormState>({
     title: "",
@@ -101,7 +117,7 @@ export function TaskSheet({
       dueDate: form.dueDate,
       status: form.status,
       dealId: form.dealId,
-      assignedToUserId: isAdmin ? form.assignedToUserId : task.assignedToUserId,
+      assignedToUserId: canAssign ? form.assignedToUserId : task.assignedToUserId,
       assignerName: currentUser.name,
     });
 
@@ -129,7 +145,7 @@ export function TaskSheet({
           </SheetDescription>
         </SheetHeader>
 
-        {task ? (
+        {task && hasAccess ? (
           <form
             onSubmit={handleSubmit}
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
@@ -171,9 +187,9 @@ export function TaskSheet({
                   id="task-deal"
                   value={form.dealId}
                   onValueChange={(value) => update("dealId", value)}
-                  disabled={deals.length === 0}
+                  disabled={visibleDeals.length === 0}
                   placeholder="Select deal"
-                  options={deals.map((entry) => {
+                  options={visibleDeals.map((entry) => {
                     const dealCustomer = getCustomerById(entry.customerId);
                     return {
                       value: entry.id,

@@ -5,10 +5,12 @@ import {
   customers as initialCustomers,
   contacts as initialContacts,
   products as initialProducts,
+  suppliers as initialSuppliers,
   deals as initialDeals,
   dealTasks as initialDealTasks,
   dealActivities as initialDealActivities,
   reminders as initialReminders,
+  documentExchanges as initialDocumentExchanges,
 } from "@/lib/mock-data";
 import {
   createDealActivityId,
@@ -36,6 +38,7 @@ import type {
   Customer,
   Contact,
   Product,
+  Supplier,
   Deal,
   DealActivity,
   DealTask,
@@ -47,15 +50,18 @@ import type {
   MasterDataLists,
   PipelineStage,
   PipelineStageConfig,
+  DocumentExchange,
 } from "@/lib/types";
 
 interface CrmDataContextValue {
   customers: Customer[];
   contacts: Contact[];
   products: Product[];
+  suppliers: Supplier[];
   deals: Deal[];
   dealTasks: DealTask[];
   dealActivities: DealActivity[];
+  documentExchanges: DocumentExchange[];
   reminders: CrmReminder[];
   attendanceRecords: AttendanceRecord[];
   pipelineStages: PipelineStageConfig[];
@@ -77,6 +83,9 @@ interface CrmDataContextValue {
   addProduct: (product: Product) => void;
   updateProduct: (productId: string, updates: Partial<Product>) => void;
   deleteProduct: (productId: string) => boolean;
+  addSupplier: (supplier: Supplier) => void;
+  updateSupplier: (supplierId: string, updates: Partial<Supplier>) => void;
+  deleteSupplier: (supplierId: string) => boolean;
   addDeal: (deal: Deal) => void;
   updateDeal: (dealId: string, updates: Partial<Deal>) => void;
   moveDealToStage: (dealId: string, stage: PipelineStage) => void;
@@ -105,6 +114,12 @@ interface CrmDataContextValue {
     updates: Partial<DealActivity> & { recorderName?: string }
   ) => void;
   deleteDealActivity: (activityId: string) => void;
+  addDocumentExchange: (record: DocumentExchange) => void;
+  updateDocumentExchange: (
+    recordId: string,
+    updates: Partial<DocumentExchange>
+  ) => void;
+  deleteDocumentExchange: (recordId: string) => void;
   markReminderRead: (reminderId: string) => void;
   markAllRemindersRead: (userId: string) => void;
   checkIn: (userId: string) => void;
@@ -118,10 +133,14 @@ interface CrmDataContextValue {
   getCustomerById: (id: string) => Customer | undefined;
   getContactById: (id: string) => Contact | undefined;
   getProductById: (id: string) => Product | undefined;
+  getSupplierById: (id: string) => Supplier | undefined;
   getDealById: (id: string) => Deal | undefined;
   getStageById: (id: string) => PipelineStageConfig | undefined;
   getContactsByCustomerId: (customerId: string) => Contact[];
   getDealsByCustomerId: (customerId: string) => Deal[];
+  getDocumentExchangeById: (id: string) => DocumentExchange | undefined;
+  getDocumentExchangesByDealId: (dealId: string) => DocumentExchange[];
+  getDocumentExchangesByCustomerId: (customerId: string) => DocumentExchange[];
 }
 
 const CrmDataContext = React.createContext<CrmDataContextValue | null>(null);
@@ -145,12 +164,16 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const [customers, setCustomers] = React.useState(initialCustomers);
   const [contacts, setContacts] = React.useState(initialContacts);
   const [products, setProducts] = React.useState(initialProducts);
+  const [suppliers, setSuppliers] = React.useState(initialSuppliers);
   const [deals, setDeals] = React.useState(() =>
     normalizeDeals(initialDeals, DEFAULT_PIPELINE_STAGES)
   );
   const [dealTasks, setDealTasks] = React.useState(initialDealTasks);
   const [dealActivities, setDealActivities] =
     React.useState(initialDealActivities);
+  const [documentExchanges, setDocumentExchanges] = React.useState(
+    initialDocumentExchanges
+  );
   const [reminders, setReminders] = React.useState(initialReminders);
   const [attendanceRecords, setAttendanceRecords] = React.useState(
     createDefaultAttendance
@@ -432,6 +455,58 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       return true;
     },
     [deals, products]
+  );
+
+  const addSupplier = React.useCallback((supplier: Supplier) => {
+    setSuppliers((prev) => [...prev, supplier]);
+    notifyCreated("Supplier", supplier.name);
+  }, []);
+
+  const updateSupplier = React.useCallback(
+    (supplierId: string, updates: Partial<Supplier>) => {
+      let supplierName: string | undefined;
+
+      setSuppliers((prev) => {
+        const existing = prev.find((supplier) => supplier.id === supplierId);
+        if (!existing) return prev;
+
+        supplierName = updates.name ?? existing.name;
+        return prev.map((supplier) =>
+          supplier.id === supplierId ? { ...supplier, ...updates } : supplier
+        );
+      });
+
+      if (supplierName) {
+        notifyUpdated("Supplier", supplierName);
+      }
+    },
+    []
+  );
+
+  const deleteSupplier = React.useCallback(
+    (supplierId: string) => {
+      const supplier = suppliers.find((entry) => entry.id === supplierId);
+      const usedOnCustomer = customers.some((customer) =>
+        customer.customerProducts.some(
+          (product) =>
+            product.primarySupplier.supplierId === supplierId ||
+            product.secondarySupplier?.supplierId === supplierId
+        )
+      );
+
+      if (usedOnCustomer) {
+        notifyError(
+          "Cannot delete supplier",
+          "Remove supplier links from customer products first."
+        );
+        return false;
+      }
+
+      setSuppliers((prev) => prev.filter((entry) => entry.id !== supplierId));
+      notifyDeleted("Supplier", supplier?.name);
+      return true;
+    },
+    [customers, suppliers]
   );
 
   const addDeal = React.useCallback((deal: Deal) => {
@@ -846,6 +921,30 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     notifyDeleted("Activity");
   }, []);
 
+  const addDocumentExchange = React.useCallback((record: DocumentExchange) => {
+    setDocumentExchanges((prev) => [...prev, record]);
+    notifyCreated("Document", record.documentType);
+  }, []);
+
+  const updateDocumentExchange = React.useCallback(
+    (recordId: string, updates: Partial<DocumentExchange>) => {
+      setDocumentExchanges((prev) =>
+        prev.map((record) =>
+          record.id === recordId ? { ...record, ...updates } : record
+        )
+      );
+      notifyUpdated("Document");
+    },
+    []
+  );
+
+  const deleteDocumentExchange = React.useCallback((recordId: string) => {
+    setDocumentExchanges((prev) =>
+      prev.filter((record) => record.id !== recordId)
+    );
+    notifyDeleted("Document");
+  }, []);
+
   const markReminderRead = React.useCallback((reminderId: string) => {
     const now = new Date().toISOString();
     setReminders((prev) =>
@@ -1032,6 +1131,11 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     [products]
   );
 
+  const getSupplierById = React.useCallback(
+    (id: string) => suppliers.find((supplier) => supplier.id === id),
+    [suppliers]
+  );
+
   const getDealById = React.useCallback(
     (id: string) => deals.find((d) => d.id === id),
     [deals]
@@ -1052,14 +1156,33 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     [deals]
   );
 
+  const getDocumentExchangeById = React.useCallback(
+    (id: string) => documentExchanges.find((record) => record.id === id),
+    [documentExchanges]
+  );
+
+  const getDocumentExchangesByDealId = React.useCallback(
+    (dealId: string) =>
+      documentExchanges.filter((record) => record.dealId === dealId),
+    [documentExchanges]
+  );
+
+  const getDocumentExchangesByCustomerId = React.useCallback(
+    (customerId: string) =>
+      documentExchanges.filter((record) => record.customerId === customerId),
+    [documentExchanges]
+  );
+
   const value = React.useMemo(
     () => ({
       customers,
       contacts,
       products,
+      suppliers,
       deals,
       dealTasks,
       dealActivities,
+      documentExchanges,
       reminders,
       attendanceRecords,
       pipelineStages,
@@ -1077,6 +1200,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       addProduct,
       updateProduct,
       deleteProduct,
+      addSupplier,
+      updateSupplier,
+      deleteSupplier,
       addDeal,
       updateDeal,
       moveDealToStage,
@@ -1087,6 +1213,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       addDealActivity,
       updateDealActivity,
       deleteDealActivity,
+      addDocumentExchange,
+      updateDocumentExchange,
+      deleteDocumentExchange,
       markReminderRead,
       markAllRemindersRead,
       checkIn,
@@ -1097,18 +1226,24 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       getCustomerById,
       getContactById,
       getProductById,
+      getSupplierById,
       getDealById,
       getStageById,
       getContactsByCustomerId,
       getDealsByCustomerId,
+      getDocumentExchangeById,
+      getDocumentExchangesByDealId,
+      getDocumentExchangesByCustomerId,
     }),
     [
       customers,
       contacts,
       products,
+      suppliers,
       deals,
       dealTasks,
       dealActivities,
+      documentExchanges,
       reminders,
       attendanceRecords,
       pipelineStages,
@@ -1126,6 +1261,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       addProduct,
       updateProduct,
       deleteProduct,
+      addSupplier,
+      updateSupplier,
+      deleteSupplier,
       addDeal,
       updateDeal,
       moveDealToStage,
@@ -1136,6 +1274,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       addDealActivity,
       updateDealActivity,
       deleteDealActivity,
+      addDocumentExchange,
+      updateDocumentExchange,
+      deleteDocumentExchange,
       markReminderRead,
       markAllRemindersRead,
       checkIn,
@@ -1146,10 +1287,14 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       getCustomerById,
       getContactById,
       getProductById,
+      getSupplierById,
       getDealById,
       getStageById,
       getContactsByCustomerId,
       getDealsByCustomerId,
+      getDocumentExchangeById,
+      getDocumentExchangesByDealId,
+      getDocumentExchangesByCustomerId,
     ]
   );
 

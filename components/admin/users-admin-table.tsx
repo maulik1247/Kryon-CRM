@@ -23,15 +23,25 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/lib/auth-provider";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
+import { getRoleLabel } from "@/lib/role-permissions";
+import { getManagerOptions } from "@/lib/user-helpers";
 import { UsersAdminMobileList } from "./users-admin-mobile-list";
+import { UserRoleSelect } from "./user-role-select";
+import { RolePermissionsMatrix } from "./role-permissions-matrix";
 import type { UserRole } from "@/lib/types";
 
 export function UsersAdminTable() {
   const { users, currentUser, addUser, updateUser, removeUser } = useAuth();
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
-  const [role, setRole] = React.useState<UserRole>("sales");
+  const [role, setRole] = React.useState<UserRole>("sales_rep");
+  const [reportsToUserId, setReportsToUserId] = React.useState("");
   const [error, setError] = React.useState("");
+
+  const managerOptions = React.useMemo(
+    () => getManagerOptions(users),
+    [users]
+  );
 
   const handleAdd = (event: React.FormEvent) => {
     event.preventDefault();
@@ -55,10 +65,12 @@ export function UsersAdminTable() {
       email: email.trim(),
       role,
       active: true,
+      reportsToUserId: reportsToUserId || undefined,
     });
     setName("");
     setEmail("");
-    setRole("sales");
+    setRole("sales_rep");
+    setReportsToUserId("");
   };
 
   const handleRemove = (userId: string) => {
@@ -70,121 +82,160 @@ export function UsersAdminTable() {
   };
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="font-display text-base">Users & Access</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Manage who can use Kryon CRM and who has admin access to this page.
-        </p>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <form
-          onSubmit={handleAdd}
-          className="grid gap-3 rounded-md border p-4 sm:grid-cols-4"
-        >
-          <Input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            placeholder="Full name"
-          />
-          <Input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            placeholder="Email"
-          />
-          <Select
-            value={role}
-            onValueChange={(value) => setRole(value as UserRole)}
+    <div className="space-y-4">
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="font-display text-base">Users & Access</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Assign roles and reporting lines. Permissions follow the matrix
+            below.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <form
+            onSubmit={handleAdd}
+            className="grid gap-3 rounded-md border p-4 lg:grid-cols-5"
           >
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Admin</SelectItem>
-              <SelectItem value="sales">Sales</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button type="submit">
-            <Plus className="h-4 w-4" />
-            Add user
-          </Button>
-        </form>
-
-        <UsersAdminMobileList
-          users={users}
-          currentUserId={currentUser.id}
-          onRoleChange={(userId, role) => updateUser(userId, { role })}
-          onRemove={handleRemove}
-        />
-
-        <div className="hidden md:block">
-          <MobileTableScroll>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="w-[88px] text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {users.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell className="font-medium">
-                      {user.name}
-                      {user.id === currentUser.id && (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          (you)
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>
-                      <Select
-                        value={user.role}
-                        onValueChange={(value) =>
-                          updateUser(user.id, { role: value as UserRole })
-                        }
-                      >
-                        <SelectTrigger className="h-8 w-[120px]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="admin">Admin</SelectItem>
-                          <SelectItem value="sales">Sales</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={user.active ? "default" : "secondary"}>
-                        {user.active ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        disabled={user.id === currentUser.id}
-                        onClick={() => handleRemove(user.id)}
-                        aria-label={`Remove ${user.name}`}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+            <Input
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="Full name"
+            />
+            <Input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="Email"
+            />
+            <UserRoleSelect value={role} onValueChange={setRole} />
+            <Select
+              value={reportsToUserId || "__none__"}
+              onValueChange={(value) =>
+                setReportsToUserId(value === "__none__" ? "" : value)
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Reports to" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No manager</SelectItem>
+                {managerOptions.map((manager) => (
+                  <SelectItem key={manager.id} value={manager.id}>
+                    {manager.name}
+                  </SelectItem>
                 ))}
-              </TableBody>
-            </Table>
-          </MobileTableScroll>
-        </div>
+              </SelectContent>
+            </Select>
+            <Button type="submit">
+              <Plus className="h-4 w-4" />
+              Add user
+            </Button>
+          </form>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
-      </CardContent>
-    </Card>
+          <UsersAdminMobileList
+            users={users}
+            currentUserId={currentUser.id}
+            managerOptions={managerOptions}
+            onRoleChange={(userId, nextRole) =>
+              updateUser(userId, { role: nextRole })
+            }
+            onManagerChange={(userId, managerId) =>
+              updateUser(userId, {
+                reportsToUserId: managerId || undefined,
+              })
+            }
+            onRemove={handleRemove}
+          />
+
+          <div className="hidden md:block">
+            <MobileTableScroll>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Reports to</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="w-[88px] text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell className="font-medium">
+                        {user.name}
+                        {user.id === currentUser.id && (
+                          <span className="ml-2 text-xs text-muted-foreground">
+                            (you)
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <UserRoleSelect
+                          value={user.role}
+                          onValueChange={(nextRole) =>
+                            updateUser(user.id, { role: nextRole })
+                          }
+                          triggerClassName="h-8 w-[160px]"
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Select
+                          value={user.reportsToUserId ?? "__none__"}
+                          onValueChange={(value) =>
+                            updateUser(user.id, {
+                              reportsToUserId:
+                                value === "__none__" ? undefined : value,
+                            })
+                          }
+                        >
+                          <SelectTrigger className="h-8 w-[160px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__none__">—</SelectItem>
+                            {managerOptions
+                              .filter((manager) => manager.id !== user.id)
+                              .map((manager) => (
+                                <SelectItem key={manager.id} value={manager.id}>
+                                  {manager.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.active ? "default" : "secondary"}>
+                          {user.active ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          disabled={user.id === currentUser.id}
+                          onClick={() => handleRemove(user.id)}
+                          aria-label={`Remove ${user.name}`}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </MobileTableScroll>
+          </div>
+
+          {error && <p className="text-sm text-destructive">{error}</p>}
+        </CardContent>
+      </Card>
+
+      <RolePermissionsMatrix />
+    </div>
   );
 }

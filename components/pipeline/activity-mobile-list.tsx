@@ -9,7 +9,7 @@ import {
 import { getActivityTypeLabel } from "@/lib/activity-constants";
 import { ActivityExpandedDetails } from "./activity-expanded-details";
 import type { DealActivity, DealActivityType } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+import { formatActivityDateTime } from "@/lib/meeting-log-constants";
 
 interface ActivityMobileListProps {
   activities: DealActivity[];
@@ -18,6 +18,8 @@ interface ActivityMobileListProps {
   contactName: (contactId?: string) => string | undefined;
   recordedBy: (userId: string) => string;
   assignedTo: (userId?: string) => string | undefined;
+  competitorName?: (supplierId?: string) => string | undefined;
+  ourAttendeeNames?: (userIds?: string[]) => string | undefined;
   onOpen: (activityId: string) => void;
   onOpenDeal: (dealId: string) => void;
   onDelete: (activityId: string) => void;
@@ -30,6 +32,8 @@ export function ActivityMobileList({
   contactName,
   recordedBy,
   assignedTo,
+  competitorName,
+  ourAttendeeNames,
   onOpen,
   onOpenDeal,
   onDelete,
@@ -53,7 +57,7 @@ export function ActivityMobileList({
                   <div className="min-w-0">
                     <p className="font-medium leading-snug">{activity.summary}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatDate(activity.occurredAt)}
+                      {formatActivityDateTime(activity.occurredAt)}
                     </p>
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs">
@@ -73,6 +77,8 @@ export function ActivityMobileList({
                 contactName={contactName(activity.contactId)}
                 recordedBy={recordedBy(activity.loggedByUserId)}
                 assignedTo={assignedTo(activity.assignedToUserId)}
+                competitorName={competitorName?.(activity.competitorSupplierId)}
+                ourAttendeeNames={ourAttendeeNames?.(activity.ourAttendeeIds)}
               />
             }
             actions={

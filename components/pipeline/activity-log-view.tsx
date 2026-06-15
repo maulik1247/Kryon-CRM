@@ -34,16 +34,17 @@ import { DealSheet } from "@/components/deals/deal-sheet";
 import { ActivitySheet } from "@/components/pipeline/activity-sheet";
 import { ActivityMobileList } from "@/components/pipeline/activity-mobile-list";
 import { LogActivityDialog } from "@/components/pipeline/log-activity-dialog";
+import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllActivitiesSorted } from "@/lib/deal-helpers";
-import { filterActivitiesForUser, getUserName } from "@/lib/user-helpers";
+import { filterActivitiesForUser, canUserAccessActivity, canUserAccessDeal, getUserName } from "@/lib/user-helpers";
 import {
   ACTIVITY_TYPE_OPTIONS,
   getActivityTypeLabel,
 } from "@/lib/activity-constants";
 import type { Deal, DealActivityType } from "@/lib/types";
-import { formatDate } from "@/lib/utils";
+import { formatActivityDateTime } from "@/lib/meeting-log-constants";
 
 const ACTIVITY_ICONS = {
   call: Phone,
@@ -54,7 +55,8 @@ const ACTIVITY_ICONS = {
 } as const;
 
 export function ActivityLogView() {
-  const { currentUser, isAdmin, users } = useAuth();
+  const { currentUser, users } = useAuth();
+  const seesAllDeals = canViewAllDeals(currentUser.role);
   const {
     dealActivities,
     deals,
@@ -62,6 +64,7 @@ export function ActivityLogView() {
     getCustomerById,
     getContactById,
     getDealById,
+    getSupplierById,
   } = useCrmData();
 
   const [typeFilter, setTypeFilter] = React.useState<DealActivityType | "all">(
@@ -75,15 +78,11 @@ export function ActivityLogView() {
   const [dealSheetOpen, setDealSheetOpen] = React.useState(false);
 
   const activities = React.useMemo(() => {
-    const visible = filterActivitiesForUser(
-      dealActivities,
-      currentUser.id,
-      isAdmin
-    );
+    const visible = filterActivitiesForUser(dealActivities, deals, currentUser, users);
     const sorted = getAllActivitiesSorted(visible);
     if (typeFilter === "all") return sorted;
     return sorted.filter((activity) => activity.type === typeFilter);
-  }, [dealActivities, typeFilter, currentUser.id, isAdmin]);
+  }, [dealActivities, deals, typeFilter, currentUser, users]);
 
   const openActivity = (activityId: string) => {
     setSelectedActivityId(activityId);
@@ -97,7 +96,7 @@ export function ActivityLogView() {
 
   const openDeal = (dealId: string) => {
     const deal = getDealById(dealId);
-    if (!deal) return;
+    if (!deal || !canUserAccessDeal(deal, currentUser, users)) return;
     setSelectedDeal(deal);
     setDealSheetOpen(true);
   };
@@ -107,19 +106,24 @@ export function ActivityLogView() {
       <React.Suspense fallback={null}>
         <OpenFromUrl
           onOpen={openActivityFromUrl}
-          canOpen={(id) => dealActivities.some((activity) => activity.id === id)}
+          canOpen={(id) => {
+            const activity = dealActivities.find((entry) => entry.id === id);
+            return activity
+              ? canUserAccessActivity(activity, deals, currentUser, users)
+              : false;
+          }}
         />
       </React.Suspense>
 
       <PageToolbar
-        description="Record calls, visits, meetings, and notes against deals."
+        description="Log visits and meetings with full attendee and follow-up details."
         meta={
           <span>
             <span className="font-medium text-foreground">
               {activities.length}
             </span>{" "}
             {activities.length === 1 ? "entry" : "entries"}
-            {!isAdmin ? " for you" : ""}
+            {!seesAllDeals ? " for you" : ""}
             {typeFilter !== "all"
               ? ` · ${getActivityTypeLabel(typeFilter)} only`
               : ""}
@@ -171,6 +175,15 @@ export function ActivityLogView() {
           recordedBy={(userId) => getUserName(users, userId)}
           assignedTo={(userId) =>
             userId ? getUserName(users, userId) : undefined
+          }
+          competitorName={(supplierId) =>
+            supplierId ? getSupplierById(supplierId)?.name : undefined
+          }
+          ourAttendeeNames={(userIds) =>
+            userIds
+              ?.map((userId) => getUserName(users, userId))
+              .filter(Boolean)
+              .join(", ")
           }
           onOpen={openActivity}
           onOpenDeal={openDeal}
@@ -228,7 +241,7 @@ export function ActivityLogView() {
                         onClick={() => openActivity(activity.id)}
                       >
                         <TableCell className="whitespace-nowrap">
-                          {formatDate(activity.occurredAt)}
+                          {formatActivityDateTime(activity.occurredAt)}
                         </TableCell>
                         <TableCell className="whitespace-nowrap">
                           <span className="inline-flex items-center gap-1.5">
@@ -255,7 +268,7 @@ export function ActivityLogView() {
                           {activity.summary}
                         </TableCell>
                         <TableCell className="max-w-[180px] truncate text-muted-foreground">
-                          {activity.outcome ?? "—"}
+                          {activity.keyDecisions ?? activity.outcome ?? "—"}
                         </TableCell>
                         <TableCell className="max-w-[140px] truncate">
                           {getUserName(users, activity.loggedByUserId)}

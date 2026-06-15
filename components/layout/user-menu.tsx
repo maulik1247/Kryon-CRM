@@ -12,6 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getRoleLabel, isAdminRole } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { cn } from "@/lib/utils";
 
@@ -63,7 +64,7 @@ export function UserMenu({ variant = "header", collapsed = false }: UserMenuProp
                 {currentUser.name}
               </span>
               <span className="truncate text-xs leading-none text-muted-foreground">
-                {isAdmin ? "Admin" : "Sales"}
+                {getRoleLabel(currentUser.role)}
               </span>
             </div>
           )}
@@ -98,7 +99,7 @@ export function UserMenu({ variant = "header", collapsed = false }: UserMenuProp
             className="flex items-center justify-between"
           >
             <span className="flex items-center gap-2">
-              {user.role === "admin" ? (
+              {isAdminRole(user.role) ? (
                 <Shield className="h-4 w-4" />
               ) : (
                 <User className="h-4 w-4" />

@@ -31,21 +31,17 @@ const ACTIVITY_ICONS = {
 const ACTIVITY_PREVIEW_LIMIT = 5;
 
 export function MyActivitiesCard() {
-  const { currentUser, isAdmin } = useAuth();
-  const { dealActivities } = useCrmData();
+  const { currentUser, users } = useAuth();
+  const { dealActivities, deals } = useCrmData();
   const [selectedActivityId, setSelectedActivityId] = React.useState<
     string | null
   >(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const activities = React.useMemo(() => {
-    const visible = filterActivitiesForUser(
-      dealActivities,
-      currentUser.id,
-      isAdmin
-    );
+    const visible = filterActivitiesForUser(dealActivities, deals, currentUser, users);
     return getAllActivitiesSorted(visible).slice(0, ACTIVITY_PREVIEW_LIMIT);
-  }, [dealActivities, currentUser.id, isAdmin]);
+  }, [dealActivities, deals, currentUser, users]);
 
   const openActivity = (activityId: string) => {
     setSelectedActivityId(activityId);

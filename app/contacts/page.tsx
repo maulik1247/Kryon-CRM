@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { AdminGuard } from "@/components/admin/admin-guard";
 import { ContactsTable } from "@/components/contacts/contacts-table";
 
 export default function ContactsPage() {
@@ -7,7 +8,9 @@ export default function ContactsPage() {
       title="Contacts"
       subtitle="Contact directory"
     >
-      <ContactsTable />
+      <AdminGuard>
+        <ContactsTable />
+      </AdminGuard>
     </AppShell>
   );
 }

@@ -9,11 +9,17 @@ import {
   notifyUpdated,
 } from "./crm-notifications";
 import type { CrmUser, UserRole } from "./types";
+import {
+  getRolePermissions,
+  isAdminRole,
+  type RolePermissions,
+} from "./role-permissions";
 
 interface AuthContextValue {
   users: CrmUser[];
   currentUser: CrmUser;
   isAdmin: boolean;
+  rolePermissions: RolePermissions;
   setCurrentUserId: (userId: string) => void;
   addUser: (user: Omit<CrmUser, "id">) => void;
   updateUser: (userId: string, updates: Partial<CrmUser>) => void;
@@ -36,7 +42,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [users, currentUserId]
   );
 
-  const isAdmin = currentUser.role === "admin";
+  const isAdmin = isAdminRole(currentUser.role);
+  const rolePermissions = React.useMemo(
+    () => getRolePermissions(currentUser.role),
+    [currentUser.role]
+  );
 
   const setCurrentUserIdSafe = React.useCallback(
     (userId: string) => {
@@ -133,6 +143,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       users,
       currentUser,
       isAdmin,
+      rolePermissions,
       setCurrentUserId: setCurrentUserIdSafe,
       addUser,
       updateUser,
@@ -142,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       users,
       currentUser,
       isAdmin,
+      rolePermissions,
       setCurrentUserIdSafe,
       addUser,
       updateUser,

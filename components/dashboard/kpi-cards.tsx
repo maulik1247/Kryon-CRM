@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getDashboardKPIs } from "@/lib/deal-helpers";
 import { isTaskOpen } from "@/lib/task-constants";
+import { canViewAllDeals } from "@/lib/role-permissions";
 import { filterDealsForUser, filterTasksForUser } from "@/lib/user-helpers";
 import { formatCurrencyCr } from "@/lib/utils";
 import { InfoLabel } from "@/components/shared/info-tip";
@@ -17,23 +18,18 @@ import {
 } from "lucide-react";
 
 export function KpiCards() {
-  const { currentUser, isAdmin } = useAuth();
+  const { currentUser, users } = useAuth();
   const { deals, dealTasks, pipelineStages } = useCrmData();
 
-  const visibleDeals = filterDealsForUser(
-    deals,
-    currentUser.name,
-    isAdmin
-  );
+  const visibleDeals = filterDealsForUser(deals, currentUser, users);
   const kpis = getDashboardKPIs(visibleDeals, pipelineStages);
 
-  const openTasks = filterTasksForUser(
-    dealTasks,
-    currentUser.id,
-    isAdmin
-  ).filter((task) => isTaskOpen(task.status)).length;
+  const openTasks = filterTasksForUser(dealTasks, currentUser, users, deals)
+    .filter((task) => isTaskOpen(task.status)).length;
 
-  const cards = isAdmin
+  const seesAllDeals = canViewAllDeals(currentUser.role);
+
+  const cards = seesAllDeals
     ? [
         {
           title: "Active Leads",

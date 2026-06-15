@@ -3,6 +3,8 @@ import {
   Bell,
   Building2,
   Clock,
+  Factory,
+  FileText,
   Kanban,
   LayoutDashboard,
   ListTodo,
@@ -55,12 +57,18 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { href: "/tasks", label: "Tasks", icon: ListTodo },
       { href: "/activity-log", label: "Activity", icon: ScrollText },
+      {
+        href: "/document-exchange",
+        label: "Documents",
+        icon: FileText,
+      },
     ],
   },
   {
     id: "master-data",
     label: "Master Data",
     icon: Building2,
+    adminOnly: true,
     items: [
       {
         href: "/customers",
@@ -70,6 +78,7 @@ export const NAV_GROUPS: NavGroup[] = [
       },
       { href: "/contacts", label: "Contacts", icon: Users, mobileTab: true },
       { href: "/products", label: "Products", icon: Package },
+      { href: "/suppliers", label: "Suppliers", icon: Factory },
     ],
   },
   {

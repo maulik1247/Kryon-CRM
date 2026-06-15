@@ -1,4 +1,5 @@
 import { AppShell } from "@/components/layout/app-shell";
+import { AdminGuard } from "@/components/admin/admin-guard";
 import { ProductsTable } from "@/components/products/products-table";
 
 export default function ProductsPage() {
@@ -7,7 +8,9 @@ export default function ProductsPage() {
       title="Products"
       subtitle="Kryon motor controller catalog"
     >
-      <ProductsTable />
+      <AdminGuard>
+        <ProductsTable />
+      </AdminGuard>
     </AppShell>
   );
 }

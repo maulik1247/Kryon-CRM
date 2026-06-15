@@ -17,6 +17,7 @@ import {
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { TaskSheet } from "@/components/tasks/task-sheet";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
+import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllTasksSorted } from "@/lib/deal-helpers";
@@ -27,7 +28,8 @@ import { cn, formatDate } from "@/lib/utils";
 const TASK_PREVIEW_LIMIT = 8;
 
 export function DashboardTasksCard() {
-  const { currentUser, isAdmin, users } = useAuth();
+  const { currentUser, users } = useAuth();
+  const seesAllDeals = canViewAllDeals(currentUser.role);
   const { dealTasks, deals, getCustomerById } = useCrmData();
   const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(
     null
@@ -35,13 +37,9 @@ export function DashboardTasksCard() {
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
   const tasks = React.useMemo(() => {
-    const visible = filterTasksForUser(
-      dealTasks,
-      currentUser.id,
-      isAdmin
-    );
+    const visible = filterTasksForUser(dealTasks, currentUser, users, deals);
     return getAllTasksSorted(visible).filter((task) => isTaskOpen(task.status));
-  }, [dealTasks, currentUser.id, isAdmin]);
+  }, [dealTasks, currentUser, users, deals]);
 
   const previewTasks = tasks.slice(0, TASK_PREVIEW_LIMIT);
   const today = new Date();
@@ -63,7 +61,7 @@ export function DashboardTasksCard() {
       <Card>
         <CardHeader className="flex flex-row items-center gap-2">
           <ListTodo className="h-4 w-4" />
-          <CardTitle>{isAdmin ? "All Open Tasks" : "My Open Tasks"}</CardTitle>
+          <CardTitle>{seesAllDeals ? "All Open Tasks" : "My Open Tasks"}</CardTitle>
           <Badge variant="secondary" className="ml-auto">
             {tasks.length}
           </Badge>
@@ -97,7 +95,7 @@ export function DashboardTasksCard() {
                         <TableHead>Task</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead>Do by</TableHead>
-                        {isAdmin ? <TableHead>Assigned to</TableHead> : null}
+                        {seesAllDeals ? <TableHead>Assigned to</TableHead> : null}
                         <TableHead>Deal</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -135,7 +133,7 @@ export function DashboardTasksCard() {
                             >
                               {formatDate(task.dueDate)}
                             </TableCell>
-                            {isAdmin ? (
+                            {seesAllDeals ? (
                               <TableCell className="max-w-[140px] truncate">
                                 {getUserName(users, task.assignedToUserId)}
                               </TableCell>

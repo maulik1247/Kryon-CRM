@@ -24,6 +24,10 @@ export const HELP = {
     "Estimated annual value = annual quantity × our quoted price per unit.",
   pipelineChart:
     "Number of open deals in each active pipeline stage.",
+  myPipelineChart:
+    "Your open deals in each pipeline stage—only deals you own.",
+  myConfidenceChart:
+    "How your open deals are spread by win confidence. Helps you spot where to focus follow-ups.",
   startingStage:
     "The pipeline column where this new lead appears first.",
   dealOwner:

@@ -18,7 +18,9 @@ import { DealCard } from "./deal-card";
 import { DealSheet } from "@/components/deals/deal-sheet";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { DealsMobileList } from "./deals-mobile-list";
+import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
+import { filterDealsForUser, canUserAccessDeal } from "@/lib/user-helpers";
 import { getStageColumnStyle } from "@/lib/pipeline-styles";
 import type { Deal, PipelineStageConfig } from "@/lib/types";
 import { cn, formatCurrencyCr } from "@/lib/utils";
@@ -143,16 +145,23 @@ function PipelineColumn({
 }
 
 export function KanbanBoard() {
+  const { currentUser, users } = useAuth();
   const { deals, pipelineStages, moveDealToStage, getDealById } = useCrmData();
+
+  const visibleDeals = React.useMemo(
+    () => filterDealsForUser(deals, currentUser, users),
+    [deals, currentUser, users]
+  );
+
   const [columns, setColumns] = React.useState(() =>
-    dealsToColumns(deals, pipelineStages)
+    dealsToColumns(visibleDeals, pipelineStages)
   );
   const [selectedDeal, setSelectedDeal] = React.useState<Deal | null>(null);
   const [sheetOpen, setSheetOpen] = React.useState(false);
 
   React.useEffect(() => {
-    setColumns(dealsToColumns(deals, pipelineStages));
-  }, [deals, pipelineStages]);
+    setColumns(dealsToColumns(visibleDeals, pipelineStages));
+  }, [visibleDeals, pipelineStages]);
 
   const handleValueChange = (newColumns: Record<string, Deal[]>) => {
     setColumns(newColumns);
@@ -174,9 +183,11 @@ export function KanbanBoard() {
   const openDealFromUrl = React.useCallback(
     (id: string) => {
       const deal = getDealById(id);
-      if (deal) handleDealClick(deal);
+      if (deal && canUserAccessDeal(deal, currentUser, users)) {
+        handleDealClick(deal);
+      }
     },
-    [getDealById]
+    [getDealById, currentUser, users]
   );
 
   const findDeal = (id: string) => {
@@ -192,11 +203,16 @@ export function KanbanBoard() {
       <React.Suspense fallback={null}>
         <OpenFromUrl
           onOpen={openDealFromUrl}
-          canOpen={(id) => Boolean(getDealById(id))}
+          canOpen={(id) => {
+            const deal = getDealById(id);
+            return deal
+              ? canUserAccessDeal(deal, currentUser, users)
+              : false;
+          }}
         />
       </React.Suspense>
       <DealsMobileList
-        deals={deals}
+        deals={visibleDeals}
         pipelineStages={pipelineStages}
         onDealClick={handleDealClick}
       />

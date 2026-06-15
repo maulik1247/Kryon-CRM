@@ -1,12 +1,14 @@
 import { endOfWeek, parseISO, startOfDay } from "date-fns";
 import { isTaskOpen } from "./task-constants";
 import type {
+  ConfidenceLevel,
   Deal,
   DealActivity,
   DealTask,
   DueThisWeekTask,
   PipelineStageConfig,
 } from "./types";
+import { CONFIDENCE_LABELS } from "./confidence-constants";
 
 export function getDealsByCustomerId(deals: Deal[], customerId: string) {
   return deals.filter((d) => d.customerId === customerId);
@@ -68,14 +70,45 @@ export function getDealsPerStage(
   deals: Deal[],
   stages: PipelineStageConfig[]
 ) {
+  const openDeals = deals.filter(
+    (deal) => stages.find((stage) => stage.id === deal.stage)?.kind === "open"
+  );
+
   return stages
+    .filter((stage) => stage.kind === "open")
     .map((stage) => ({
       stage: stage.name,
       stageId: stage.id,
       color: stage.color,
-      count: deals.filter((d) => d.stage === stage.id).length,
+      count: openDeals.filter((deal) => deal.stage === stage.id).length,
     }))
-    .filter((s) => s.count > 0);
+    .filter((stage) => stage.count > 0);
+}
+
+const CONFIDENCE_ORDER: ConfidenceLevel[] = [100, 75, 50, 25, 0];
+
+export const CONFIDENCE_CHART_COLORS: Record<ConfidenceLevel, string> = {
+  100: "#00AEEF",
+  75: "#0ea5e9",
+  50: "#f59e0b",
+  25: "#f97316",
+  0: "#94a3b8",
+};
+
+export function getOpenDealsByConfidence(
+  deals: Deal[],
+  stages: PipelineStageConfig[]
+) {
+  const openDeals = deals.filter(
+    (deal) => stages.find((stage) => stage.id === deal.stage)?.kind === "open"
+  );
+
+  return CONFIDENCE_ORDER.map((confidence) => ({
+    label: CONFIDENCE_LABELS[confidence],
+    confidence,
+    count: openDeals.filter((deal) => deal.confidence === confidence).length,
+    color: CONFIDENCE_CHART_COLORS[confidence],
+  })).filter((item) => item.count > 0);
 }
 
 export function getActivitiesByDealId(

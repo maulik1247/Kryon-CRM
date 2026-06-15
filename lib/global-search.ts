@@ -1,4 +1,5 @@
 import { getActivityTypeLabel } from "@/lib/activity-constants";
+import { canAccessMasterData } from "@/lib/role-permissions";
 import { getTaskStatusLabel } from "@/lib/task-constants";
 import {
   filterActivitiesForUser,
@@ -7,12 +8,14 @@ import {
 } from "@/lib/user-helpers";
 import type {
   Contact,
+  CrmUser,
   Customer,
   Deal,
   DealActivity,
   DealTask,
   PipelineStageConfig,
   Product,
+  Supplier,
 } from "@/lib/types";
 
 export type SearchResultType =
@@ -21,7 +24,8 @@ export type SearchResultType =
   | "deal"
   | "task"
   | "activity"
-  | "product";
+  | "product"
+  | "supplier";
 
 export interface SearchResult {
   id: string;
@@ -45,6 +49,7 @@ const TYPE_LABELS: Record<SearchResultType, string> = {
   task: "Tasks",
   activity: "Activity",
   product: "Products",
+  supplier: "Suppliers",
 };
 
 const RESULT_LIMIT_PER_TYPE = 5;
@@ -85,13 +90,13 @@ export interface GlobalSearchInput {
   contacts: Contact[];
   deals: Deal[];
   products: Product[];
+  suppliers: Supplier[];
   dealTasks: DealTask[];
   dealActivities: DealActivity[];
   pipelineStages: PipelineStageConfig[];
   getCustomerById: (id: string) => Customer | undefined;
-  currentUserId: string;
-  currentUserName: string;
-  isAdmin: boolean;
+  currentUser: CrmUser;
+  users: CrmUser[];
 }
 
 export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
@@ -99,27 +104,28 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
   if (!query) return [];
 
   const results: SearchResult[] = [];
+  const canSeeMasterData = canAccessMasterData(input.currentUser.role);
   const visibleDeals = filterDealsForUser(
     input.deals,
-    input.currentUserName,
-    input.isAdmin
+    input.currentUser,
+    input.users
   );
   const visibleDealIds = new Set(visibleDeals.map((deal) => deal.id));
   const visibleTasks = filterTasksForUser(
     input.dealTasks,
-    input.currentUserId,
-    input.isAdmin
+    input.currentUser,
+    input.users,
+    input.deals
   );
   const visibleActivities = filterActivitiesForUser(
     input.dealActivities,
-    input.currentUserId,
-    input.isAdmin
+    input.deals,
+    input.currentUser,
+    input.users
   );
 
   for (const customer of input.customers) {
-    if (!input.isAdmin && customer.accountOwner !== input.currentUserName) {
-      continue;
-    }
+    if (!canSeeMasterData) continue;
 
     pushResult(results, {
       id: customer.id,
@@ -140,10 +146,9 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
   }
 
   for (const contact of input.contacts) {
+    if (!canSeeMasterData) continue;
+
     const customer = input.getCustomerById(contact.customerId);
-    if (!input.isAdmin && customer?.accountOwner !== input.currentUserName) {
-      continue;
-    }
 
     pushResult(results, {
       id: contact.id,
@@ -189,7 +194,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
   }
 
   for (const task of visibleTasks) {
-    if (!visibleDealIds.has(task.dealId) && !input.isAdmin) continue;
+    if (!visibleDealIds.has(task.dealId) && !canSeeMasterData) continue;
 
     const deal = input.deals.find((entry) => entry.id === task.dealId);
     const customer = deal ? input.getCustomerById(deal.customerId) : undefined;
@@ -210,7 +215,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
   }
 
   for (const activity of visibleActivities) {
-    if (!visibleDealIds.has(activity.dealId) && !input.isAdmin) continue;
+    if (!visibleDealIds.has(activity.dealId) && !canSeeMasterData) continue;
 
     const deal = input.deals.find((entry) => entry.id === activity.dealId);
     const customer = deal ? input.getCustomerById(deal.customerId) : undefined;
@@ -237,6 +242,8 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
   }
 
   for (const product of input.products) {
+    if (!canSeeMasterData) continue;
+
     pushResult(results, {
       id: product.id,
       type: "product",
@@ -252,6 +259,25 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
         product.motorControllerType,
         product.hsnCode,
         product.description
+      ),
+    });
+  }
+
+  for (const supplier of input.suppliers) {
+    if (!canSeeMasterData) continue;
+
+    pushResult(results, {
+      id: supplier.id,
+      type: "supplier",
+      title: supplier.name,
+      subtitle: [supplier.type, supplier.region].filter(Boolean).join(" · "),
+      href: `/suppliers?open=${supplier.id}`,
+      rank: rankMatch(
+        query,
+        supplier.name,
+        supplier.type,
+        supplier.region,
+        supplier.notes
       ),
     });
   }
@@ -274,6 +300,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
     "task",
     "activity",
     "product",
+    "supplier",
   ];
 
   return order
