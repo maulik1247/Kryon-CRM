@@ -7,7 +7,7 @@ import { GlobalSearch } from "@/components/layout/global-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
 
 interface HeaderProps {
-  title: string;
+  title?: string;
   subtitle?: string;
 }
 
@@ -20,14 +20,16 @@ export function Header({ title, subtitle }: HeaderProps) {
             <Zap className="h-4 w-4" />
           </div>
           <div className="min-w-0">
-          <h1 className="truncate font-display text-base font-semibold leading-tight tracking-tight sm:text-lg">
-            {title}
-          </h1>
-          {subtitle && (
+          {title ? (
+            <h1 className="truncate font-display text-base font-semibold leading-tight tracking-tight sm:text-lg">
+              {title}
+            </h1>
+          ) : null}
+          {subtitle ? (
             <p className="mt-0.5 truncate text-xs text-muted-foreground">
               {subtitle}
             </p>
-          )}
+          ) : null}
           </div>
         </div>
 

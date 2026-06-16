@@ -21,18 +21,29 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
-import { ProductSheet } from "./product-sheet";
+import Link from "next/link";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
+import { useAuth } from "@/lib/auth-provider";
 import { ProductsMobileList } from "./products-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
+import { sortByCreatedAtDesc } from "@/lib/list-helpers";
+import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
+import { getUserName } from "@/lib/user-helpers";
 import type { Product } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
 
 export function ProductsTable() {
+  const { users } = useAuth();
   const { products, deleteProduct } = useCrmData();
-  const [sheetProduct, setSheetProduct] = React.useState<Product | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToProduct } = useRecordNavigation();
   const [deleteProductRecord, setDeleteProductRecord] =
     React.useState<Product | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const sortedProducts = React.useMemo(
+    () => sortByCreatedAtDesc(products),
+    [products]
+  );
 
   const {
     paginatedItems,
@@ -42,20 +53,7 @@ export function ProductsTable() {
     rangeStart,
     rangeEnd,
     setPage,
-  } = usePagination(products);
-
-  const openSheet = (product: Product | null) => {
-    setSheetProduct(product);
-    setSheetOpen(true);
-  };
-
-  const openSheetById = React.useCallback(
-    (id: string) => {
-      const product = products.find((entry) => entry.id === id);
-      if (product) openSheet(product);
-    },
-    [products]
-  );
+  } = usePagination(sortedProducts);
 
   const handleDeleteConfirm = () => {
     if (!deleteProductRecord) return;
@@ -68,10 +66,6 @@ export function ProductsTable() {
       return;
     }
 
-    if (sheetProduct?.id === deleteProductRecord.id) {
-      setSheetOpen(false);
-      setSheetProduct(null);
-    }
     setDeleteProductRecord(null);
   };
 
@@ -79,7 +73,7 @@ export function ProductsTable() {
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openSheetById}
+          getHref={recordRoutes.product}
           canOpen={(id) => products.some((entry) => entry.id === id)}
         />
       </React.Suspense>
@@ -93,9 +87,11 @@ export function ProductsTable() {
           </span>
         }
         actions={
-          <Button onClick={() => openSheet(null)}>
-            <Plus className="h-4 w-4" />
-            Add Product
+          <Button asChild>
+            <Link href={recordNewRoutes.product}>
+              <Plus className="h-4 w-4" />
+              Add Product
+            </Link>
           </Button>
         }
       />
@@ -108,9 +104,11 @@ export function ProductsTable() {
               title="No products yet"
               description="Add BLDC controllers and related SKUs to use in deals."
               action={
-                <Button onClick={() => openSheet(null)}>
-                  <Plus className="h-4 w-4" />
-                  Add Product
+                <Button asChild>
+                  <Link href={recordNewRoutes.product}>
+                    <Plus className="h-4 w-4" />
+                    Add Product
+                  </Link>
                 </Button>
               }
             />
@@ -119,7 +117,8 @@ export function ProductsTable() {
           <>
             <ProductsMobileList
               products={paginatedItems}
-              onOpen={openSheet}
+              users={users}
+              onOpen={(product) => goToProduct(product.id)}
               onDelete={(product) => {
                 setDeleteError("");
                 setDeleteProductRecord(product);
@@ -154,21 +153,25 @@ export function ProductsTable() {
                 <TableHead>Sensor</TableHead>
                 <TableHead>HSN</TableHead>
                 <TableHead className="text-right">Price (₹)</TableHead>
+                <TableHead>Added on</TableHead>
+                <TableHead>Added by</TableHead>
                 <TableHead className="w-[88px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="p-0">
+                  <TableCell colSpan={12} className="p-0">
                     <EmptyState
                       icon={Package}
                       title="No products yet"
                       description="Add BLDC controllers and related SKUs to use in deals."
                       action={
-                        <Button onClick={() => openSheet(null)}>
-                          <Plus className="h-4 w-4" />
-                          Add Product
+                        <Button asChild>
+                          <Link href={recordNewRoutes.product}>
+                            <Plus className="h-4 w-4" />
+                            Add Product
+                          </Link>
                         </Button>
                       }
                       className="m-4 border-none bg-transparent shadow-none"
@@ -180,7 +183,7 @@ export function ProductsTable() {
                 <TableRow
                   key={product.id}
                   className="cursor-pointer"
-                  onClick={() => openSheet(product)}
+                  onClick={() => goToProduct(product.id)}
                 >
                   <TableCell>
                     <Badge variant="default">{product.motorControllerType}</Badge>
@@ -203,9 +206,15 @@ export function ProductsTable() {
                   <TableCell className="text-right font-semibold text-primary">
                     {product.sellingPrice.toLocaleString("en-IN")}
                   </TableCell>
+                  <TableCell className="whitespace-nowrap">
+                    {formatDate(product.createdAt)}
+                  </TableCell>
+                  <TableCell className="max-w-[140px] truncate">
+                    {getUserName(users, product.createdByUserId)}
+                  </TableCell>
                   <TableCell>
                     <TableActions
-                      onEdit={() => openSheet(product)}
+                      onEdit={() => goToProduct(product.id)}
                       onDelete={() => {
                         setDeleteError("");
                         setDeleteProductRecord(product);
@@ -233,15 +242,6 @@ export function ProductsTable() {
           <p className="text-sm text-destructive">{deleteError}</p>
         )}
       </div>
-
-      <ProductSheet
-        product={sheetProduct}
-        open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open);
-          if (!open) setSheetProduct(null);
-        }}
-      />
 
       <DeleteConfirmDialog
         open={!!deleteProductRecord}

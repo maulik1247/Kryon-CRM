@@ -6,6 +6,7 @@ import {
   TIERS,
   VENDOR_STATUSES,
 } from "./customer-constants";
+import { DEFAULT_CURRENT_USER_ID } from "./default-users";
 import { DEFAULT_MASTER_DATA } from "./default-master-data";
 import type {
   AnnualRevenueRange,
@@ -199,6 +200,8 @@ function rowToCustomer(
     ),
     notes: excelValueToString(row.Notes),
     customerProducts: [],
+    createdAt: new Date().toISOString(),
+    createdByUserId: DEFAULT_CURRENT_USER_ID,
   };
 
   return { customer };

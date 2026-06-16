@@ -21,31 +21,36 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
-import { DocumentExchangeSheet } from "./document-exchange-sheet";
+import Link from "next/link";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { DocumentExchangeMobileList } from "./document-exchange-mobile-list";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getDocumentExchangeStatusVariant } from "@/lib/document-exchange-constants";
 import { filterDocumentExchangesForUser } from "@/lib/user-helpers";
+import { sortByCreatedAtDesc } from "@/lib/list-helpers";
+import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import type { DocumentExchange } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 export function DocumentExchangeTable() {
   const { currentUser, users } = useAuth();
   const { documentExchanges, deals, deleteDocumentExchange, getCustomerById } =
     useCrmData();
-  const [sheetRecord, setSheetRecord] =
-    React.useState<DocumentExchange | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToDocument } = useRecordNavigation();
   const [deleteRecord, setDeleteRecord] =
     React.useState<DocumentExchange | null>(null);
 
   const records = React.useMemo(
     () =>
-      filterDocumentExchangesForUser(
-        documentExchanges,
-        deals,
-        currentUser,
-        users
+      sortByCreatedAtDesc(
+        filterDocumentExchangesForUser(
+          documentExchanges,
+          deals,
+          currentUser,
+          users
+        )
       ),
     [documentExchanges, deals, currentUser, users]
   );
@@ -60,27 +65,10 @@ export function DocumentExchangeTable() {
     setPage,
   } = usePagination(records);
 
-  const openSheet = (record: DocumentExchange | null) => {
-    setSheetRecord(record);
-    setSheetOpen(true);
-  };
-
-  const openSheetById = React.useCallback(
-    (id: string) => {
-      const record = records.find((entry) => entry.id === id);
-      if (record) openSheet(record);
-    },
-    [records]
-  );
-
   const handleDeleteConfirm = () => {
     if (!deleteRecord) return;
     deleteDocumentExchange(deleteRecord.id);
 
-    if (sheetRecord?.id === deleteRecord.id) {
-      setSheetOpen(false);
-      setSheetRecord(null);
-    }
     setDeleteRecord(null);
   };
 
@@ -88,7 +76,7 @@ export function DocumentExchangeTable() {
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openSheetById}
+          getHref={recordRoutes.document}
           canOpen={(id) => records.some((entry) => entry.id === id)}
         />
       </React.Suspense>
@@ -102,9 +90,11 @@ export function DocumentExchangeTable() {
           </span>
         }
         actions={
-          <Button onClick={() => openSheet(null)}>
-            <Plus className="h-4 w-4" />
-            Add Document
+          <Button asChild>
+            <Link href={recordNewRoutes.document}>
+              <Plus className="h-4 w-4" />
+              Add Document
+            </Link>
           </Button>
         }
       />
@@ -117,9 +107,11 @@ export function DocumentExchangeTable() {
               title="No documents yet"
               description="Log NDAs, datasheets, and other files exchanged with customers."
               action={
-                <Button onClick={() => openSheet(null)}>
-                  <Plus className="h-4 w-4" />
-                  Add Document
+                <Button asChild>
+                  <Link href={recordNewRoutes.document}>
+                    <Plus className="h-4 w-4" />
+                    Add Document
+                  </Link>
                 </Button>
               }
             />
@@ -128,7 +120,8 @@ export function DocumentExchangeTable() {
           <>
             <DocumentExchangeMobileList
               records={paginatedItems}
-              onOpen={openSheet}
+              users={users}
+              onOpen={(record) => goToDocument(record.id)}
               onDelete={setDeleteRecord}
             />
             {totalItems > 0 ? (
@@ -158,21 +151,25 @@ export function DocumentExchangeTable() {
                   <TableHead>Status</TableHead>
                   <TableHead>Files</TableHead>
                   <TableHead>Signed</TableHead>
+                  <TableHead>Added on</TableHead>
+                  <TableHead>Added by</TableHead>
                   <TableHead className="w-[88px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="p-0">
+                    <TableCell colSpan={10} className="p-0">
                       <EmptyState
                         icon={FileText}
                         title="No documents yet"
                         description="Log NDAs, datasheets, and other files exchanged with customers."
                         action={
-                          <Button onClick={() => openSheet(null)}>
-                            <Plus className="h-4 w-4" />
-                            Add Document
+                          <Button asChild>
+                            <Link href={recordNewRoutes.document}>
+                              <Plus className="h-4 w-4" />
+                              Add Document
+                            </Link>
                           </Button>
                         }
                         className="m-4 border-none bg-transparent shadow-none"
@@ -187,7 +184,7 @@ export function DocumentExchangeTable() {
                       <TableRow
                         key={record.id}
                         className="cursor-pointer"
-                        onClick={() => openSheet(record)}
+                        onClick={() => goToDocument(record.id)}
                       >
                         <TableCell className="max-w-[180px] truncate font-medium">
                           {record.documentType}
@@ -212,9 +209,15 @@ export function DocumentExchangeTable() {
                         </TableCell>
                         <TableCell>{record.files.length}</TableCell>
                         <TableCell>{record.signedCopyUploaded}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatDate(record.createdAt)}
+                        </TableCell>
+                        <TableCell className="max-w-[140px] truncate">
+                          {getUserName(users, record.createdByUserId)}
+                        </TableCell>
                         <TableCell>
                           <TableActions
-                            onEdit={() => openSheet(record)}
+                            onEdit={() => goToDocument(record.id)}
                             onDelete={() => setDeleteRecord(record)}
                           />
                         </TableCell>
@@ -237,15 +240,6 @@ export function DocumentExchangeTable() {
           ) : null}
         </Card>
       </div>
-
-      <DocumentExchangeSheet
-        record={sheetRecord}
-        open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open);
-          if (!open) setSheetRecord(null);
-        }}
-      />
 
       <DeleteConfirmDialog
         open={!!deleteRecord}

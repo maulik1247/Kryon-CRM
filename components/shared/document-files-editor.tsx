@@ -3,7 +3,7 @@
 import { Trash2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/shared/field-label";
 import {
   DocumentFileIcon,
   getDocumentFileTypeLabel,
@@ -20,6 +20,7 @@ interface DocumentFilesEditorProps {
   multiple?: boolean;
   helperText?: string;
   emptyMessage?: string;
+  optional?: boolean;
 }
 
 export function DocumentFilesEditor({
@@ -32,6 +33,7 @@ export function DocumentFilesEditor({
   multiple = true,
   helperText = "PDF, DOC, JPG",
   emptyMessage = "No documents uploaded yet.",
+  optional = false,
 }: DocumentFilesEditorProps) {
   const handleFilesChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files ?? []);
@@ -60,7 +62,9 @@ export function DocumentFilesEditor({
       ) : null}
 
       <div className="space-y-2">
-        <Label htmlFor={inputId}>{label}</Label>
+        <FieldLabel htmlFor={inputId} optional={optional}>
+          {label}
+        </FieldLabel>
         <div className="flex flex-wrap items-center gap-2">
           <Button type="button" variant="outline" size="sm" asChild>
             <label htmlFor={inputId} className="cursor-pointer">

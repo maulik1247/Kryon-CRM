@@ -1,12 +1,16 @@
 import { DetailGrid } from "@/components/shared/detail-grid";
 import { DocumentFileIcon } from "@/components/shared/document-file-icon";
 import { useCrmData } from "@/lib/crm-data-provider";
-import type { DocumentExchange } from "@/lib/types";
+import type { CrmUser, DocumentExchange } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 export function DocumentExchangeExpandedDetails({
   record,
+  users,
 }: {
   record: DocumentExchange;
+  users: CrmUser[];
 }) {
   const { getCustomerById, getDealById } = useCrmData();
   const customer = getCustomerById(record.customerId);
@@ -20,6 +24,11 @@ export function DocumentExchangeExpandedDetails({
           { label: "Deal", value: deal?.id },
           { label: "Direction", value: record.direction },
           { label: "Date", value: record.exchangeDate },
+          { label: "Added on", value: formatDate(record.createdAt) },
+          {
+            label: "Added by",
+            value: getUserName(users, record.createdByUserId),
+          },
           { label: "Status", value: record.status },
           { label: "Signed copy", value: record.signedCopyUploaded },
           { label: "Version", value: record.versionNumber },

@@ -15,8 +15,6 @@ export const HELP = {
   myOpenTasks: "Tasks assigned to you that are pending or in progress.",
   dueThisWeek:
     "Open tasks due before the end of this week on your deals.",
-  attendance:
-    "Check in when you start work and check out when you leave. One record per day.",
   taskStatus:
     "Pending = not started. In progress = working on it. Completed = done.",
   doBy: "Target date to finish this task—the next step on the deal.",

@@ -10,6 +10,7 @@ import { getActivityTypeLabel } from "@/lib/activity-constants";
 import { ActivityExpandedDetails } from "./activity-expanded-details";
 import type { DealActivity, DealActivityType } from "@/lib/types";
 import { formatActivityDateTime } from "@/lib/meeting-log-constants";
+import { formatDate } from "@/lib/utils";
 
 interface ActivityMobileListProps {
   activities: DealActivity[];
@@ -57,7 +58,8 @@ export function ActivityMobileList({
                   <div className="min-w-0">
                     <p className="font-medium leading-snug">{activity.summary}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      {formatActivityDateTime(activity.occurredAt)}
+                      {formatActivityDateTime(activity.occurredAt)} · Added on{" "}
+                      {formatDate(activity.createdAt)}
                     </p>
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs">

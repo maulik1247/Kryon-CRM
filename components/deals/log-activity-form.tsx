@@ -3,7 +3,7 @@
 import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/shared/field-label";
 import { DatePicker } from "@/components/ui/date-picker";
 import {
   Select,
@@ -87,7 +87,7 @@ export function LogActivityForm({
   return (
     <div className="space-y-3">
       <div className="space-y-2">
-        <Label>Recorded by</Label>
+        <FieldLabel optional>Recorded by</FieldLabel>
         <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
           {currentUser.name}
         </p>
@@ -95,7 +95,7 @@ export function LogActivityForm({
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-2">
-          <Label htmlFor={`activity-type-${dealId}`}>Type</Label>
+          <FieldLabel htmlFor={`activity-type-${dealId}`}>Type</FieldLabel>
           <Select
             value={type}
             onValueChange={(value) => setType(value as DealActivityType)}
@@ -113,7 +113,7 @@ export function LogActivityForm({
           </Select>
         </div>
         <div className="space-y-2">
-          <Label>Date</Label>
+          <FieldLabel>Date</FieldLabel>
           <DatePicker
             value={occurredAt}
             onChange={setOccurredAt}
@@ -133,7 +133,9 @@ export function LogActivityForm({
 
       {contacts.length > 0 && (
         <div className="space-y-2">
-          <Label htmlFor={`activity-contact-${dealId}`}>Contact</Label>
+          <FieldLabel htmlFor={`activity-contact-${dealId}`} optional>
+            Contact
+          </FieldLabel>
           <Select value={contactId} onValueChange={setContactId}>
             <SelectTrigger id={`activity-contact-${dealId}`}>
               <SelectValue placeholder="Who you spoke with" />
@@ -150,7 +152,7 @@ export function LogActivityForm({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor={`activity-summary-${dealId}`}>Summary</Label>
+        <FieldLabel htmlFor={`activity-summary-${dealId}`}>Summary</FieldLabel>
         <Textarea
           id={`activity-summary-${dealId}`}
           rows={2}
@@ -161,9 +163,9 @@ export function LogActivityForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor={`activity-outcome-${dealId}`}>
-          Outcome <span className="text-muted-foreground">(optional)</span>
-        </Label>
+        <FieldLabel htmlFor={`activity-outcome-${dealId}`} optional>
+          Outcome
+        </FieldLabel>
         <Textarea
           id={`activity-outcome-${dealId}`}
           rows={2}

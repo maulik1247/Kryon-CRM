@@ -6,7 +6,9 @@ import { PriorityBadge } from "@/components/shared/priority-badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { TableActions } from "@/components/shared/table-actions";
 import { getVendorStatusVariant } from "@/lib/vendor-status";
-import type { Customer } from "@/lib/types";
+import type { CrmUser, Customer } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 function plantLocationSummary(locations: string[]) {
   if (locations.length === 0) return "No plants";
@@ -16,12 +18,14 @@ function plantLocationSummary(locations: string[]) {
 
 interface CustomersMobileListProps {
   customers: Customer[];
+  users: CrmUser[];
   onOpen: (customer: Customer) => void;
   onDelete: (customer: Customer) => void;
 }
 
 export function CustomersMobileList({
   customers,
+  users,
   onOpen,
   onDelete,
 }: CustomersMobileListProps) {
@@ -56,6 +60,12 @@ export function CustomersMobileList({
                 <span>{customer.oemSegment}</span>
                 <span>·</span>
                 <span>{customer.tier}</span>
+                <span>·</span>
+                <span>Added on {formatDate(customer.createdAt)}</span>
+                <span>·</span>
+                <span>
+                  Added by {getUserName(users, customer.createdByUserId)}
+                </span>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Badge

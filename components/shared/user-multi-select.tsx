@@ -1,7 +1,7 @@
 "use client";
 
 import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/shared/field-label";
 import { getRoleLabel } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { getActiveUsers } from "@/lib/user-helpers";
@@ -13,6 +13,7 @@ interface UserMultiSelectProps {
   value: string[];
   onChange: (userIds: string[]) => void;
   disabled?: boolean;
+  optional?: boolean;
 }
 
 export function UserMultiSelect({
@@ -21,6 +22,7 @@ export function UserMultiSelect({
   value,
   onChange,
   disabled,
+  optional = false,
 }: UserMultiSelectProps) {
   const { users } = useAuth();
   const activeUsers = getActiveUsers(users);
@@ -35,7 +37,9 @@ export function UserMultiSelect({
 
   return (
     <div className="space-y-2">
-      <Label id={id}>{label}</Label>
+      <FieldLabel id={id} optional={optional}>
+        {label}
+      </FieldLabel>
       <div className="rounded-md border bg-muted/10 p-3">
         <div className="space-y-2">
           {activeUsers.map((user) => {

@@ -6,6 +6,7 @@ import {
   filterDealsForUser,
   filterTasksForUser,
 } from "@/lib/user-helpers";
+import { recordRoutes } from "@/lib/record-routes";
 import type {
   Contact,
   CrmUser,
@@ -134,7 +135,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       subtitle: [customer.oemSegment, customer.accountOwner]
         .filter(Boolean)
         .join(" · "),
-      href: `/customers?open=${customer.id}`,
+      href: recordRoutes.customer(customer.id),
       rank: rankMatch(
         query,
         customer.name,
@@ -155,7 +156,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       type: "contact",
       title: contact.name,
       subtitle: [contact.designation, customer?.name].filter(Boolean).join(" · "),
-      href: `/contacts?open=${contact.id}`,
+      href: recordRoutes.contact(contact.id),
       rank: rankMatch(
         query,
         contact.name,
@@ -182,7 +183,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       type: "deal",
       title: deal.id,
       subtitle: [customer?.name, stageName, deal.owner].filter(Boolean).join(" · "),
-      href: `/deal-pipeline?open=${deal.id}`,
+      href: recordRoutes.deal(deal.id),
       rank: rankMatch(
         query,
         deal.id,
@@ -209,7 +210,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       ]
         .filter(Boolean)
         .join(" · "),
-      href: `/tasks?open=${task.id}`,
+      href: recordRoutes.task(task.id),
       rank: rankMatch(query, task.title, task.dealId, customer?.name),
     });
   }
@@ -230,7 +231,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       ]
         .filter(Boolean)
         .join(" · "),
-      href: `/activity-log?open=${activity.id}`,
+      href: recordRoutes.activity(activity.id),
       rank: rankMatch(
         query,
         activity.summary,
@@ -251,7 +252,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       subtitle: [product.sku, product.motorControllerType]
         .filter(Boolean)
         .join(" · "),
-      href: `/products?open=${product.id}`,
+      href: recordRoutes.product(product.id),
       rank: rankMatch(
         query,
         product.model,
@@ -271,7 +272,7 @@ export function runGlobalSearch(input: GlobalSearchInput): SearchResultGroup[] {
       type: "supplier",
       title: supplier.name,
       subtitle: [supplier.type, supplier.region].filter(Boolean).join(" · "),
-      href: `/suppliers?open=${supplier.id}`,
+      href: recordRoutes.supplier(supplier.id),
       rank: rankMatch(
         query,
         supplier.name,

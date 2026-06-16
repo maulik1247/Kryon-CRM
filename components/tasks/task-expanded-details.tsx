@@ -34,6 +34,7 @@ export function TaskExpandedDetails({
     <div className="space-y-4">
       <DetailGrid
         items={[
+          { label: "ID", value: task.id, mono: true },
           { label: "Customer", value: customerName },
           { label: "Deal", value: task.dealId, mono: true },
           {
@@ -42,6 +43,7 @@ export function TaskExpandedDetails({
             emphasis: isOverdue,
             className: isOverdue ? "text-destructive" : undefined,
           },
+          { label: "Added on", value: formatDate(task.createdAt) },
           { label: "Added by", value: addedByName },
           { label: "Assigned to", value: assignedToName },
           {

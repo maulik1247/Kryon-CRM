@@ -3,7 +3,7 @@
 import { Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/shared/field-label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FormSelect } from "@/components/shared/form-select";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -74,7 +74,7 @@ function SupplierFields({
   return (
     <div className="space-y-2 rounded-md border bg-muted/20 p-3">
       <div className="flex items-center justify-between gap-2">
-        <Label>{title}</Label>
+        <FieldLabel optional={optional}>{title}</FieldLabel>
         {optional && onRemove ? (
           <Button
             type="button"
@@ -231,9 +231,9 @@ export function CustomerProductDetailsEditor({
               </CardHeader>
               <CardContent className="space-y-4 px-4 pb-4">
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${item.id}-product`}>
+                  <FieldLabel htmlFor={`${item.id}-product`}>
                     Product SKU / Model Name
-                  </Label>
+                  </FieldLabel>
                   <FormSelect
                     id={`${item.id}-product`}
                     value={item.productId}
@@ -250,7 +250,7 @@ export function CustomerProductDetailsEditor({
 
                 {catalogProduct ? (
                   <div className="space-y-1.5">
-                    <Label>Technical specs</Label>
+                    <FieldLabel optional>Technical specs</FieldLabel>
                     <div className="rounded-md border bg-muted/20 px-3 py-2 text-sm">
                       <p className="font-medium">
                         {catalogProduct.motorControllerType}
@@ -269,9 +269,9 @@ export function CustomerProductDetailsEditor({
 
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
-                    <Label htmlFor={`${item.id}-annual-qty`}>
+                    <FieldLabel htmlFor={`${item.id}-annual-qty`}>
                       Annual quantity (pcs)
-                    </Label>
+                    </FieldLabel>
                     <Input
                       id={`${item.id}-annual-qty`}
                       type="number"
@@ -287,9 +287,9 @@ export function CustomerProductDetailsEditor({
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label htmlFor={`${item.id}-monthly-offtake`}>
+                    <FieldLabel htmlFor={`${item.id}-monthly-offtake`}>
                       Monthly off-take (pcs)
-                    </Label>
+                    </FieldLabel>
                     <Input
                       id={`${item.id}-monthly-offtake`}
                       type="number"
@@ -307,9 +307,9 @@ export function CustomerProductDetailsEditor({
                 </div>
 
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${item.id}-purchase-price`}>
+                  <FieldLabel htmlFor={`${item.id}-purchase-price`}>
                     Current purchase price (INR)
-                  </Label>
+                  </FieldLabel>
                   <Input
                     id={`${item.id}-purchase-price`}
                     type="number"

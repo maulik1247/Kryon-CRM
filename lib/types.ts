@@ -113,6 +113,8 @@ export interface Supplier {
   type: SupplierType;
   region: string;
   notes?: string;
+  createdAt: string;
+  createdByUserId: string;
 }
 
 export interface CustomerProductSupplier {
@@ -197,6 +199,8 @@ export interface Product {
   sellingPrice: number;
   description?: string;
   specSheet?: ProductSpecDocument;
+  createdAt: string;
+  createdByUserId: string;
 }
 
 export interface Contact {
@@ -214,6 +218,8 @@ export interface Contact {
   linkedInUrl?: string;
   birthdayOrAnniversary?: string;
   notes?: string;
+  createdAt: string;
+  createdByUserId: string;
 }
 
 export interface Customer {
@@ -241,18 +247,29 @@ export interface Customer {
   estimatedAnnualPotential: string;
   notes: string;
   customerProducts: CustomerProductDetails[];
+  createdAt: string;
+  createdByUserId: string;
+}
+
+export interface DealLineItem {
+  id: string;
+  productCategory: string;
+  productId: string;
+  /** Set when SKU is entered on the deal instead of picked from catalog. */
+  customSku?: string;
+  customModel?: string;
+  quantity: number;
+  quotedPrice: number;
+  currentSupplierId: string;
+  currentSupplierPrice: number;
 }
 
 export interface Deal {
   id: string;
   customerId: string;
   contactId: string;
-  productId: string;
-  quantity: number;
+  lineItems: DealLineItem[];
   estimatedAnnualValue: number;
-  currentSupplierName: string;
-  currentSupplierPrice: number;
-  quotedPrice: number;
   confidence: ConfidenceLevel;
   stage: PipelineStage;
   stageEnteredAt: string;
@@ -265,7 +282,11 @@ export type DealActivityType = "call" | "meeting" | "email" | "visit" | "note";
 export type VisitType =
   | "In-Person"
   | "Virtual / Video Call"
-  | "Phone Call";
+  | "Phone Call"
+  | "Factory / Plant Visit"
+  | "Trade Show / Expo"
+  | "Customer Office"
+  | "Other";
 
 export type MeetingPurpose =
   | "Discovery"
@@ -273,6 +294,8 @@ export type MeetingPurpose =
   | "Sample Review"
   | "Negotiation"
   | "Plant Audit"
+  | "Technical Review"
+  | "Pricing Discussion"
   | "Relationship"
   | "Other";
 
@@ -361,12 +384,4 @@ export interface DueThisWeekTask {
   title: string;
   dueDate: string;
   customerName: string;
-}
-
-export interface AttendanceRecord {
-  id: string;
-  userId: string;
-  date: string;
-  checkInAt?: string;
-  checkOutAt?: string;
 }

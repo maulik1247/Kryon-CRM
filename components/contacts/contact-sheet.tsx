@@ -23,6 +23,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
   BUYING_ROLES,
@@ -81,7 +82,12 @@ function contactToForm(contact: Contact): ContactFormState {
   };
 }
 
-function formToContact(form: ContactFormState, id: string): Contact {
+function formToContact(
+  form: ContactFormState,
+  id: string,
+  existing?: Contact,
+  createdByUserId?: string
+): Contact {
   return {
     id,
     customerId: form.customerId,
@@ -97,6 +103,9 @@ function formToContact(form: ContactFormState, id: string): Contact {
     linkedInUrl: form.linkedInUrl.trim() || undefined,
     birthdayOrAnniversary: form.birthdayOrAnniversary || undefined,
     notes: form.notes.trim() || undefined,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    createdByUserId:
+      existing?.createdByUserId ?? createdByUserId ?? "user-admin",
   };
 }
 
@@ -111,10 +120,12 @@ export function ContactSheet({
   open,
   onOpenChange,
 }: ContactSheetProps) {
+  const { currentUser } = useAuth();
   const {
     customers,
     addContact,
     updateContact,
+    deleteContact,
     getContactById,
     getCustomerById,
     getContactsByCustomerId,
@@ -146,12 +157,20 @@ export function ContactSheet({
     e.preventDefault();
 
     if (isAdd) {
-      addContact(formToContact(form, `cont-${Date.now()}`));
+      addContact(
+        formToContact(form, `cont-${Date.now()}`, undefined, currentUser.id)
+      );
     } else if (contact) {
-      updateContact(contact.id, formToContact(form, contact.id));
+      updateContact(contact.id, formToContact(form, contact.id, contact));
     }
 
     onOpenChange(false);
+  };
+
+  const handleDelete = () => {
+    if (!contact) return;
+    const removed = deleteContact(contact.id);
+    if (removed) onOpenChange(false);
   };
 
   const customer = getCustomerById(form.customerId);
@@ -352,15 +371,28 @@ export function ContactSheet({
             </Tabs>
           </div>
 
-          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-            <SheetClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
+            {!isAdd ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+              >
+                Delete
               </Button>
-            </SheetClose>
-            <Button type="submit" disabled={!form.customerId}>
-              {isAdd ? "Save Contact" : "Save Changes"}
-            </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <SheetClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </SheetClose>
+              <Button type="submit" disabled={!form.customerId}>
+                {isAdd ? "Save Contact" : "Save Changes"}
+              </Button>
+            </div>
           </SheetFooter>
         </form>
       </SheetContent>

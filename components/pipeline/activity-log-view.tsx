@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Phone,
   Users,
@@ -8,6 +9,7 @@ import {
   MapPin,
   StickyNote,
   ScrollText,
+  Plus,
 } from "lucide-react";
 import {
   Table,
@@ -18,6 +20,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -32,21 +35,21 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
-import { DealSheet } from "@/components/deals/deal-sheet";
-import { ActivitySheet } from "@/components/pipeline/activity-sheet";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { ActivityMobileList } from "@/components/pipeline/activity-mobile-list";
-import { LogActivitySheet } from "@/components/pipeline/log-activity-sheet";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllActivitiesSorted } from "@/lib/deal-helpers";
-import { filterActivitiesForUser, canUserAccessActivity, canUserAccessDeal, getUserName } from "@/lib/user-helpers";
+import { filterActivitiesForUser, canUserAccessActivity, getUserName } from "@/lib/user-helpers";
+import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import {
   ACTIVITY_TYPE_OPTIONS,
   getActivityTypeLabel,
 } from "@/lib/activity-constants";
-import type { Deal, DealActivityType } from "@/lib/types";
+import type { DealActivityType } from "@/lib/types";
 import { formatActivityDateTime } from "@/lib/meeting-log-constants";
+import { formatDate } from "@/lib/utils";
 
 const ACTIVITY_ICONS = {
   call: Phone,
@@ -65,19 +68,13 @@ export function ActivityLogView() {
     deleteDealActivity,
     getCustomerById,
     getContactById,
-    getDealById,
     getSupplierById,
   } = useCrmData();
+  const { goToActivity, goToDeal } = useRecordNavigation();
 
   const [typeFilter, setTypeFilter] = React.useState<DealActivityType | "all">(
     "all"
   );
-  const [selectedActivityId, setSelectedActivityId] = React.useState<
-    string | null
-  >(null);
-  const [activitySheetOpen, setActivitySheetOpen] = React.useState(false);
-  const [selectedDeal, setSelectedDeal] = React.useState<Deal | null>(null);
-  const [dealSheetOpen, setDealSheetOpen] = React.useState(false);
 
   const activities = React.useMemo(() => {
     const visible = filterActivitiesForUser(dealActivities, deals, currentUser, users);
@@ -96,28 +93,15 @@ export function ActivityLogView() {
     setPage,
   } = usePagination(activities, 10, typeFilter);
 
-  const openActivity = (activityId: string) => {
-    setSelectedActivityId(activityId);
-    setActivitySheetOpen(true);
-  };
-
-  const openActivityFromUrl = React.useCallback(
-    (id: string) => openActivity(id),
-    []
-  );
-
   const openDeal = (dealId: string) => {
-    const deal = getDealById(dealId);
-    if (!deal || !canUserAccessDeal(deal, currentUser, users)) return;
-    setSelectedDeal(deal);
-    setDealSheetOpen(true);
+    goToDeal(dealId);
   };
 
   return (
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openActivityFromUrl}
+          getHref={recordRoutes.activity}
           canOpen={(id) => {
             const activity = dealActivities.find((entry) => entry.id === id);
             return activity
@@ -161,7 +145,14 @@ export function ActivityLogView() {
             </SelectContent>
           </Select>
         }
-        actions={<LogActivitySheet />}
+        actions={
+          <Button asChild>
+            <Link href={recordNewRoutes.activity}>
+              <Plus className="h-4 w-4" />
+              Log Activity
+            </Link>
+          </Button>
+        }
       />
 
       {activities.length === 0 ? (
@@ -170,7 +161,14 @@ export function ActivityLogView() {
             icon={ScrollText}
             title="No activity yet"
             description="Log calls, meetings, and visits to keep deals moving."
-            action={<LogActivitySheet />}
+            action={
+              <Button asChild>
+                <Link href={recordNewRoutes.activity}>
+                  <Plus className="h-4 w-4" />
+                  Log Activity
+                </Link>
+              </Button>
+            }
           />
         </div>
       ) : (
@@ -198,7 +196,7 @@ export function ActivityLogView() {
                 .filter(Boolean)
                 .join(", ")
             }
-            onOpen={openActivity}
+            onOpen={goToActivity}
             onOpenDeal={openDeal}
             onDelete={deleteDealActivity}
           />
@@ -229,20 +227,28 @@ export function ActivityLogView() {
                   <TableHead>Contact</TableHead>
                   <TableHead>Summary</TableHead>
                   <TableHead>Outcome</TableHead>
-                  <TableHead>Recorded by</TableHead>
                   <TableHead>Assigned to</TableHead>
+                  <TableHead>Added on</TableHead>
+                  <TableHead>Added by</TableHead>
                   <TableHead className="w-[88px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {activities.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="p-0">
+                    <TableCell colSpan={11} className="p-0">
                       <EmptyState
                         icon={ScrollText}
                         title="No activity logged yet"
                         description="Capture customer conversations and field visits as they happen."
-                        action={<LogActivitySheet />}
+                        action={
+              <Button asChild>
+                <Link href={recordNewRoutes.activity}>
+                  <Plus className="h-4 w-4" />
+                  Log Activity
+                </Link>
+              </Button>
+            }
                         className="m-4 border-none bg-transparent shadow-none"
                       />
                     </TableCell>
@@ -264,7 +270,7 @@ export function ActivityLogView() {
                       <TableRow
                         key={activity.id}
                         className="cursor-pointer"
-                        onClick={() => openActivity(activity.id)}
+                        onClick={() => goToActivity(activity.id)}
                       >
                         <TableCell className="whitespace-nowrap">
                           {formatActivityDateTime(activity.occurredAt)}
@@ -297,18 +303,21 @@ export function ActivityLogView() {
                           {activity.keyDecisions ?? activity.outcome ?? "—"}
                         </TableCell>
                         <TableCell className="max-w-[140px] truncate">
-                          {getUserName(users, activity.loggedByUserId)}
-                        </TableCell>
-                        <TableCell className="max-w-[140px] truncate">
                           {activity.assignedToUserId
                             ? getUserName(users, activity.assignedToUserId)
                             : "—"}
+                        </TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatDate(activity.createdAt)}
+                        </TableCell>
+                        <TableCell className="max-w-[140px] truncate">
+                          {getUserName(users, activity.loggedByUserId)}
                         </TableCell>
                         <TableCell
                           onClick={(event) => event.stopPropagation()}
                         >
                           <TableActions
-                            onEdit={() => openActivity(activity.id)}
+                            onEdit={() => goToActivity(activity.id)}
                             onDelete={() => deleteDealActivity(activity.id)}
                           />
                         </TableCell>
@@ -330,19 +339,6 @@ export function ActivityLogView() {
             />
           ) : null}
         </Card>
-
-      <ActivitySheet
-        activityId={selectedActivityId}
-        open={activitySheetOpen}
-        onOpenChange={setActivitySheetOpen}
-        onViewDeal={openDeal}
-      />
-
-      <DealSheet
-        deal={selectedDeal}
-        open={dealSheetOpen}
-        onOpenChange={setDealSheetOpen}
-      />
     </>
   );
 }

@@ -8,10 +8,13 @@ import {
   useExpandableCards,
 } from "@/components/shared/expandable-mobile-card";
 import { ContactExpandedDetails } from "./contact-expanded-details";
-import type { Contact } from "@/lib/types";
+import type { Contact, CrmUser } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 interface ContactsMobileListProps {
   contacts: Contact[];
+  users: CrmUser[];
   customerName: (customerId: string) => string | undefined;
   onOpen: (contact: Contact) => void;
   onDelete: (contact: Contact) => void;
@@ -19,6 +22,7 @@ interface ContactsMobileListProps {
 
 export function ContactsMobileList({
   contacts,
+  users,
   customerName,
   onOpen,
   onDelete,
@@ -51,6 +55,12 @@ export function ContactsMobileList({
                 <span>·</span>
                 <span className="truncate">
                   {customerName(contact.customerId) ?? "—"}
+                </span>
+                <span>·</span>
+                <span>Added on {formatDate(contact.createdAt)}</span>
+                <span>·</span>
+                <span>
+                  Added by {getUserName(users, contact.createdByUserId)}
                 </span>
               </div>
               <RoleBadge role={contact.buyingRole} />

@@ -22,6 +22,7 @@ interface TasksMobileListProps {
   onDelete?: (task: DealTask) => void;
   showActions?: boolean;
   showStatusSelect?: boolean;
+  openOnTap?: boolean;
 }
 
 export function TasksMobileList({
@@ -35,6 +36,7 @@ export function TasksMobileList({
   onDelete,
   showActions = true,
   showStatusSelect = true,
+  openOnTap = false,
 }: TasksMobileListProps) {
   const { expandedId, toggleExpanded } = useExpandableCards();
 
@@ -48,24 +50,31 @@ export function TasksMobileList({
             key={task.id}
             id={task.id}
             expandedId={expandedId}
-            onToggle={toggleExpanded}
+            onToggle={openOnTap ? onOpenTask : toggleExpanded}
             summary={
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
-                  <p
-                    className={cn(
-                      "font-medium leading-snug",
-                      task.status === "completed" && "text-muted-foreground"
-                    )}
-                  >
-                    {task.title}
-                  </p>
+                  <div className="min-w-0 space-y-1">
+                    <p className="font-mono text-xs text-muted-foreground">
+                      {task.id}
+                    </p>
+                    <p
+                      className={cn(
+                        "font-medium leading-snug",
+                        task.status === "completed" && "text-muted-foreground"
+                      )}
+                    >
+                      {task.title}
+                    </p>
+                  </div>
                   <TaskStatusBadge status={task.status} />
                 </div>
                 <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                   <span className={cn(overdue && "font-medium text-destructive")}>
                     Do by {formatDate(task.dueDate)}
                   </span>
+                  <span>·</span>
+                  <span>Added on {formatDate(task.createdAt)}</span>
                   <span>·</span>
                   <span className="truncate">
                     {customerNameByDealId(task.dealId) ?? task.dealId}
@@ -74,6 +83,7 @@ export function TasksMobileList({
               </div>
             }
             details={
+              openOnTap ? undefined : (
               <TaskExpandedDetails
                 task={task}
                 customerName={customerNameByDealId(task.dealId)}
@@ -87,9 +97,10 @@ export function TasksMobileList({
                 }
                 showStatusSelect={showStatusSelect}
               />
+              )
             }
             actions={
-              showActions ? (
+              openOnTap ? undefined : showActions ? (
                 <TableActions
                   onEdit={() => onOpenTask(task.id)}
                   onDelete={

@@ -9,7 +9,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { getRoleLabel, isAdminRole } from "@/lib/role-permissions";
@@ -83,14 +82,6 @@ export function UserMenu({ variant = "header", collapsed = false }: UserMenuProp
         side={isSidebar ? "top" : "bottom"}
         className="w-56"
       >
-        <DropdownMenuLabel>Signed in as</DropdownMenuLabel>
-        <DropdownMenuItem disabled className="flex flex-col items-start">
-          <span>{currentUser.name}</span>
-          <span className="text-xs text-muted-foreground">
-            {currentUser.email}
-          </span>
-        </DropdownMenuItem>
-        <DropdownMenuSeparator />
         <DropdownMenuLabel>Switch user</DropdownMenuLabel>
         {activeUsers.map((user) => (
           <DropdownMenuItem

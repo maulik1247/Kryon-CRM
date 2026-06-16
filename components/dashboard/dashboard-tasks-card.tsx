@@ -17,7 +17,7 @@ import {
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
-import { TaskSheet } from "@/components/tasks/task-sheet";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
@@ -31,10 +31,7 @@ export function DashboardTasksCard() {
   const { currentUser, users } = useAuth();
   const seesAllDeals = canViewAllDeals(currentUser.role);
   const { dealTasks, deals, getCustomerById } = useCrmData();
-  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(
-    null
-  );
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToTask } = useRecordNavigation();
 
   const tasks = React.useMemo(() => {
     const visible = filterTasksForUser(dealTasks, currentUser, users, deals);
@@ -55,8 +52,7 @@ export function DashboardTasksCard() {
   today.setHours(0, 0, 0, 0);
 
   const openTask = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setSheetOpen(true);
+    goToTask(taskId);
   };
 
   const isOverdue = (task: (typeof paginatedItems)[number]) => {
@@ -187,12 +183,6 @@ export function DashboardTasksCard() {
           </Button>
         </CardContent>
       </Card>
-
-      <TaskSheet
-        taskId={selectedTaskId}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-      />
     </>
   );
 }

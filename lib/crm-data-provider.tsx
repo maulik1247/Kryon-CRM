@@ -17,8 +17,6 @@ import {
   createDealTaskId,
   createReminderId,
 } from "@/lib/deal-record-ids";
-import { createDefaultAttendance } from "@/lib/default-attendance";
-import { getTodayDateString } from "@/lib/attendance-helpers";
 import { getTaskStatusLabel } from "@/lib/task-constants";
 import { isAssignableActivityType } from "@/lib/user-helpers";
 import {
@@ -42,7 +40,6 @@ import type {
   Deal,
   DealActivity,
   DealTask,
-  AttendanceRecord,
   TaskStatus,
   CrmReminder,
   CrmReminderKind,
@@ -63,7 +60,6 @@ interface CrmDataContextValue {
   dealActivities: DealActivity[];
   documentExchanges: DocumentExchange[];
   reminders: CrmReminder[];
-  attendanceRecords: AttendanceRecord[];
   pipelineStages: PipelineStageConfig[];
   masterData: MasterDataLists;
   addMasterDataItem: (list: MasterDataListKey, value: string) => boolean;
@@ -88,6 +84,7 @@ interface CrmDataContextValue {
   deleteSupplier: (supplierId: string) => boolean;
   addDeal: (deal: Deal) => void;
   updateDeal: (dealId: string, updates: Partial<Deal>) => void;
+  deleteDeal: (dealId: string) => boolean;
   moveDealToStage: (dealId: string, stage: PipelineStage) => void;
   addDealTask: (
     task: Omit<
@@ -122,8 +119,6 @@ interface CrmDataContextValue {
   deleteDocumentExchange: (recordId: string) => void;
   markReminderRead: (reminderId: string) => void;
   markAllRemindersRead: (userId: string) => void;
-  checkIn: (userId: string) => void;
-  checkOut: (userId: string) => void;
   addPipelineStage: (name: string, color: string) => void;
   updatePipelineStage: (
     stageId: string,
@@ -175,9 +170,6 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     initialDocumentExchanges
   );
   const [reminders, setReminders] = React.useState(initialReminders);
-  const [attendanceRecords, setAttendanceRecords] = React.useState(
-    createDefaultAttendance
-  );
 
   const pushReminder = React.useCallback(
     (reminder: Omit<CrmReminder, "id" | "createdAt" | "readAt">) => {
@@ -441,7 +433,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const deleteProduct = React.useCallback(
     (productId: string) => {
       const product = products.find((entry) => entry.id === productId);
-      const usedInDeal = deals.some((d) => d.productId === productId);
+      const usedInDeal = deals.some((deal) =>
+        deal.lineItems.some((item) => item.productId === productId)
+      );
       if (usedInDeal) {
         notifyError(
           "Cannot delete product",
@@ -523,18 +517,21 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
         prev.map((deal) => {
           if (deal.id !== dealId) return deal;
 
-          const quantity = updates.quantity ?? deal.quantity;
-          const quotedPrice = updates.quotedPrice ?? deal.quotedPrice;
+          const lineItems = updates.lineItems ?? deal.lineItems;
           const stage = updates.stage ?? deal.stage;
           stageChanged = Boolean(updates.stage && updates.stage !== deal.stage);
 
           return {
             ...deal,
             ...updates,
-            quantity,
-            quotedPrice,
+            lineItems,
             stage,
-            estimatedAnnualValue: quantity * quotedPrice,
+            estimatedAnnualValue:
+              updates.estimatedAnnualValue ??
+              lineItems.reduce(
+                (sum, item) => sum + item.quantity * item.quotedPrice,
+                0
+              ),
             stageEnteredAt:
               updates.stage && updates.stage !== deal.stage
                 ? today
@@ -546,6 +543,30 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       notifyUpdated("Deal", dealId);
     },
     []
+  );
+
+  const deleteDeal = React.useCallback(
+    (dealId: string) => {
+      const deal = deals.find((entry) => entry.id === dealId);
+      if (!deal) return false;
+
+      setDeals((prev) => prev.filter((entry) => entry.id !== dealId));
+      setDealTasks((prev) => prev.filter((task) => task.dealId !== dealId));
+      setDealActivities((prev) =>
+        prev.filter((activity) => activity.dealId !== dealId)
+      );
+      setReminders((prev) =>
+        prev.filter((reminder) => reminder.dealId !== dealId)
+      );
+      setDocumentExchanges((prev) =>
+        prev.map((record) =>
+          record.dealId === dealId ? { ...record, dealId: undefined } : record
+        )
+      );
+      notifyDeleted("Deal", dealId);
+      return true;
+    },
+    [deals]
   );
 
   const moveDealToStage = React.useCallback(
@@ -965,84 +986,6 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const checkIn = React.useCallback((userId: string) => {
-    const today = getTodayDateString();
-    const now = new Date().toISOString();
-    let didCheckIn = false;
-
-    setAttendanceRecords((prev) => {
-      const existing = prev.find(
-        (record) => record.userId === userId && record.date === today
-      );
-
-      if (existing?.checkInAt) {
-        return prev;
-      }
-
-      didCheckIn = true;
-
-      if (existing) {
-        return prev.map((record) =>
-          record.id === existing.id ? { ...record, checkInAt: now } : record
-        );
-      }
-
-      return [
-        ...prev,
-        {
-          id: `att-${Date.now()}`,
-          userId,
-          date: today,
-          checkInAt: now,
-        },
-      ];
-    });
-
-    if (didCheckIn) {
-      notifyCreated("Attendance", "Checked in for today");
-    } else {
-      notifyError("Already checked in", "You have already checked in today.");
-    }
-  }, []);
-
-  const checkOut = React.useCallback((userId: string) => {
-    const today = getTodayDateString();
-    const now = new Date().toISOString();
-    let didCheckOut = false;
-    let needsCheckIn = false;
-    let alreadyCheckedOut = false;
-
-    setAttendanceRecords((prev) => {
-      const existing = prev.find(
-        (record) => record.userId === userId && record.date === today
-      );
-
-      if (!existing?.checkInAt) {
-        needsCheckIn = true;
-        return prev;
-      }
-
-      if (existing.checkOutAt) {
-        alreadyCheckedOut = true;
-        return prev;
-      }
-
-      didCheckOut = true;
-
-      return prev.map((record) =>
-        record.id === existing.id ? { ...record, checkOutAt: now } : record
-      );
-    });
-
-    if (didCheckOut) {
-      notifyUpdated("Attendance", "Checked out for today");
-    } else if (needsCheckIn) {
-      notifyError("Check in first", "You need to check in before checking out.");
-    } else if (alreadyCheckedOut) {
-      notifyError("Already checked out", "You have already checked out today.");
-    }
-  }, []);
-
   const addPipelineStage = React.useCallback((name: string, color: string) => {
     const trimmed = name.trim();
     if (!trimmed) return;
@@ -1184,7 +1127,6 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       dealActivities,
       documentExchanges,
       reminders,
-      attendanceRecords,
       pipelineStages,
       masterData,
       addMasterDataItem,
@@ -1205,6 +1147,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       deleteSupplier,
       addDeal,
       updateDeal,
+      deleteDeal,
       moveDealToStage,
       addDealTask,
       updateDealTask,
@@ -1218,8 +1161,6 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       deleteDocumentExchange,
       markReminderRead,
       markAllRemindersRead,
-      checkIn,
-      checkOut,
       addPipelineStage,
       updatePipelineStage,
       removePipelineStage,
@@ -1245,7 +1186,6 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       dealActivities,
       documentExchanges,
       reminders,
-      attendanceRecords,
       pipelineStages,
       masterData,
       addMasterDataItem,
@@ -1266,6 +1206,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       deleteSupplier,
       addDeal,
       updateDeal,
+      deleteDeal,
       moveDealToStage,
       addDealTask,
       updateDealTask,
@@ -1279,8 +1220,6 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       deleteDocumentExchange,
       markReminderRead,
       markAllRemindersRead,
-      checkIn,
-      checkOut,
       addPipelineStage,
       updatePipelineStage,
       removePipelineStage,

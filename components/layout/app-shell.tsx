@@ -15,7 +15,7 @@ function ReminderUserToast() {
 
 interface AppShellProps {
   children: React.ReactNode;
-  title: string;
+  title?: string;
   subtitle?: string;
   toolbar?: React.ReactNode;
 }

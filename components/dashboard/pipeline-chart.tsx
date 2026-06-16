@@ -7,7 +7,6 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  LabelList,
   XAxis,
   YAxis,
 } from "recharts";
@@ -32,15 +31,23 @@ import { useAuth } from "@/lib/auth-provider";
 import { filterDealsForUser } from "@/lib/user-helpers";
 import { InfoLabel } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
-
-const KRYON_CYAN = "#00AEEF";
-const KRYON_TEAL_MUTED = "#6B9AA8";
-const MOBILE_BAR_HEIGHT = 36;
+import {
+  CHART_AXIS_COLOR,
+  CHART_BAR_RADIUS,
+  CHART_BAR_RADIUS_HORIZONTAL,
+  CHART_DESKTOP_HEIGHT,
+  CHART_DESKTOP_MARGIN,
+  CHART_GRID_CLASS,
+  CHART_MOBILE_BAR_HEIGHT,
+  CHART_MOBILE_MARGIN,
+  CHART_PRIMARY,
+  formatChartCount,
+} from "@/lib/chart-theme";
 
 const chartConfig = {
   count: {
     label: "Deals",
-    color: KRYON_CYAN,
+    color: CHART_PRIMARY,
   },
 } satisfies ChartConfig;
 
@@ -77,7 +84,7 @@ function StageAxisTick({
           dy={12 + i * 12}
           textAnchor="middle"
           fontSize={10}
-          fill={KRYON_TEAL_MUTED}
+          fill={CHART_AXIS_COLOR}
         >
           {line}
         </text>
@@ -108,7 +115,7 @@ function MobileStageYAxisTick({
       dy={4}
       textAnchor="end"
       fontSize={10}
-      fill={KRYON_TEAL_MUTED}
+      fill={CHART_AXIS_COLOR}
     >
       {label}
     </text>
@@ -134,14 +141,14 @@ function PipelineChartDesktop({
     <ChartContainer
       key={chartKey}
       config={chartConfig}
-      className="h-full w-full [&_.recharts-bar-rectangle]:!fill-[#00AEEF]"
+      className="h-full w-full"
     >
       <BarChart
         accessibilityLayer
         data={data}
-        margin={{ top: 24, right: 12, left: 4, bottom: 20 }}
+        margin={CHART_DESKTOP_MARGIN}
       >
-        <CartesianGrid vertical={false} className="stroke-border/40" />
+        <CartesianGrid vertical={false} className={CHART_GRID_CLASS} />
         <XAxis
           dataKey="stage"
           tickLine={false}
@@ -154,31 +161,26 @@ function PipelineChartDesktop({
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
-          width={28}
+          width={32}
           domain={[0, "dataMax + 1"]}
-          tick={{ fill: KRYON_TEAL_MUTED, fontSize: 10 }}
+          tick={{ fill: CHART_AXIS_COLOR, fontSize: 10 }}
+          tickFormatter={formatChartCount}
         />
         <ChartTooltip
-          cursor={false}
+          cursor={{ fill: "hsl(var(--muted))", opacity: 0.35 }}
           content={<ChartTooltipContent labelKey="stage" nameKey="count" />}
         />
         <Bar
           dataKey="count"
-          fill={KRYON_CYAN}
-          radius={[4, 4, 0, 0]}
-          maxBarSize={56}
+          fill={CHART_PRIMARY}
+          radius={CHART_BAR_RADIUS}
+          maxBarSize={52}
+          isAnimationActive
+          animationDuration={400}
         >
           {data.map((entry) => (
             <Cell key={entry.stage} fill={entry.color} />
           ))}
-          <LabelList
-            dataKey="count"
-            position="top"
-            offset={8}
-            fill="#1B3F4B"
-            fontSize={12}
-            fontWeight={600}
-          />
         </Bar>
       </BarChart>
     </ChartContainer>
@@ -192,30 +194,31 @@ function PipelineChartMobile({
   data: StageChartDatum[];
   chartKey: string;
 }) {
-  const chartHeight = Math.max(180, data.length * MOBILE_BAR_HEIGHT + 16);
+  const chartHeight = Math.max(180, data.length * CHART_MOBILE_BAR_HEIGHT + 16);
 
   return (
     <ChartContainer
       key={`mobile-${chartKey}`}
       config={chartConfig}
-      className="h-full w-full [&_.recharts-bar-rectangle]:!fill-[#00AEEF]"
+      className="h-full w-full"
       style={{ minHeight: chartHeight }}
     >
       <BarChart
         accessibilityLayer
         layout="vertical"
         data={data}
-        margin={{ top: 4, right: 28, left: 4, bottom: 4 }}
+        margin={CHART_MOBILE_MARGIN}
         barCategoryGap="20%"
       >
-        <CartesianGrid horizontal={false} className="stroke-border/40" />
+        <CartesianGrid horizontal={false} className={CHART_GRID_CLASS} />
         <XAxis
           type="number"
           tickLine={false}
           axisLine={false}
           allowDecimals={false}
           domain={[0, "dataMax + 1"]}
-          tick={{ fill: KRYON_TEAL_MUTED, fontSize: 10 }}
+          tick={{ fill: CHART_AXIS_COLOR, fontSize: 10 }}
+          tickFormatter={formatChartCount}
         />
         <YAxis
           type="category"
@@ -226,26 +229,20 @@ function PipelineChartMobile({
           tick={MobileStageYAxisTick}
         />
         <ChartTooltip
-          cursor={false}
+          cursor={{ fill: "hsl(var(--muted))", opacity: 0.35 }}
           content={<ChartTooltipContent labelKey="stage" nameKey="count" />}
         />
         <Bar
           dataKey="count"
-          fill={KRYON_CYAN}
-          radius={[0, 4, 4, 0]}
-          maxBarSize={24}
+          fill={CHART_PRIMARY}
+          radius={CHART_BAR_RADIUS_HORIZONTAL}
+          maxBarSize={22}
+          isAnimationActive
+          animationDuration={400}
         >
           {data.map((entry) => (
             <Cell key={entry.stage} fill={entry.color} />
           ))}
-          <LabelList
-            dataKey="count"
-            position="right"
-            offset={8}
-            fill="#1B3F4B"
-            fontSize={11}
-            fontWeight={600}
-          />
         </Bar>
       </BarChart>
     </ChartContainer>
@@ -272,7 +269,7 @@ export function PipelineChart() {
   const seesAllDeals = canViewAllDeals(currentUser.role);
 
   const chartKey = `${pathname}-${seesAllDeals ? "all" : currentUser.id}-${data.map((d) => d.count).join("-")}`;
-  const mobileChartHeight = Math.max(180, data.length * MOBILE_BAR_HEIGHT + 16);
+  const mobileChartHeight = Math.max(180, data.length * CHART_MOBILE_BAR_HEIGHT + 16);
   const emptyMessage = seesAllDeals
     ? "No deals in the pipeline yet."
     : "No open deals assigned to you yet.";
@@ -284,8 +281,8 @@ export function PipelineChart() {
   }, [pathname, data.length]);
 
   return (
-    <Card className="w-full">
-      <CardHeader>
+    <Card className="flex h-full w-full flex-col">
+      <CardHeader className="shrink-0">
         <CardTitle>
           <InfoLabel info={seesAllDeals ? HELP.pipelineChart : HELP.myPipelineChart}>
             {seesAllDeals ? "Deals by Pipeline Stage" : "My Deals by Pipeline Stage"}
@@ -297,7 +294,7 @@ export function PipelineChart() {
             : "Your open deals across pipeline stages"}
         </CardDescription>
       </CardHeader>
-      <CardContent className="w-full">
+      <CardContent className="w-full flex-1 pt-0">
         <div
           className="w-full md:hidden"
           style={{ height: mobileChartHeight }}
@@ -315,7 +312,10 @@ export function PipelineChart() {
           )}
         </div>
 
-        <div className="hidden h-[340px] w-full md:block">
+        <div
+          className="hidden w-full md:block"
+          style={{ height: CHART_DESKTOP_HEIGHT }}
+        >
           {ready ? (
             data.length > 0 ? (
               <PipelineChartDesktop data={data} chartKey={chartKey} />

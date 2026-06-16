@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import { useCrmData } from "@/lib/crm-data-provider";
+import { formatDealProductsSummary } from "@/lib/deal-form-helpers";
 import { getNextOpenTaskForDeal } from "@/lib/deal-helpers";
 import type { Deal } from "@/lib/types";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
@@ -22,9 +23,19 @@ export function DealCard({
   isOverlay,
   showHandle = true,
 }: DealCardProps) {
-  const { getCustomerById, getProductById, dealTasks } = useCrmData();
+  const { getCustomerById, getProductById, getSupplierById, dealTasks } =
+    useCrmData();
   const customer = getCustomerById(deal.customerId);
-  const product = getProductById(deal.productId);
+  const productsSummary = formatDealProductsSummary(
+    deal.lineItems,
+    getProductById
+  );
+  const primarySupplier = deal.lineItems[0]
+    ? getSupplierById(deal.lineItems[0].currentSupplierId)
+    : undefined;
+  const multipleSuppliers = new Set(
+    deal.lineItems.map((item) => item.currentSupplierId)
+  ).size > 1;
   const nextTask = getNextOpenTaskForDeal(dealTasks, deal.id);
 
   return (
@@ -47,8 +58,13 @@ export function DealCard({
               <p className="truncate text-sm font-semibold leading-tight">
                 {customer?.name}
               </p>
-              <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
-                {product?.model}
+              <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
+                {productsSummary}
+                {primarySupplier
+                  ? multipleSuppliers
+                    ? " · multiple suppliers"
+                    : ` · vs ${primarySupplier.name}`
+                  : ""}
               </p>
             </div>
           </div>

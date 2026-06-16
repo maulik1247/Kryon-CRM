@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { Download, Plus } from "lucide-react";
 import {
   Table,
@@ -16,17 +17,22 @@ import { Card } from "@/components/ui/card";
 import { PriorityBadge } from "@/components/shared/priority-badge";
 import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { TableActions } from "@/components/shared/table-actions";
-import { CustomerSheet } from "./customer-sheet";
 import { CustomersMobileList } from "./customers-mobile-list";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
+import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { downloadCustomersExcel } from "@/lib/customer-excel";
+import { sortByCreatedAtDesc } from "@/lib/list-helpers";
+import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import { getVendorStatusVariant } from "@/lib/vendor-status";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
+import { getUserName } from "@/lib/user-helpers";
 import type { Customer } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
 
 function plantLocationSummary(locations: string[]) {
   if (locations.length === 0) return "—";
@@ -35,14 +41,17 @@ function plantLocationSummary(locations: string[]) {
 }
 
 export function CustomersTable() {
+  const { users } = useAuth();
   const { customers, deleteCustomer } = useCrmData();
-  const [sheetCustomer, setSheetCustomer] = React.useState<Customer | null>(
-    null
-  );
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToCustomer } = useRecordNavigation();
   const [deleteCustomerRecord, setDeleteCustomerRecord] =
     React.useState<Customer | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const sortedCustomers = React.useMemo(
+    () => sortByCreatedAtDesc(customers),
+    [customers]
+  );
 
   const {
     paginatedItems,
@@ -52,20 +61,7 @@ export function CustomersTable() {
     rangeStart,
     rangeEnd,
     setPage,
-  } = usePagination(customers);
-
-  const openSheet = (customer: Customer | null) => {
-    setSheetCustomer(customer);
-    setSheetOpen(true);
-  };
-
-  const openSheetById = React.useCallback(
-    (id: string) => {
-      const customer = customers.find((entry) => entry.id === id);
-      if (customer) openSheet(customer);
-    },
-    [customers]
-  );
+  } = usePagination(sortedCustomers);
 
   const handleDeleteConfirm = () => {
     if (!deleteCustomerRecord) return;
@@ -78,10 +74,6 @@ export function CustomersTable() {
       return;
     }
 
-    if (sheetCustomer?.id === deleteCustomerRecord.id) {
-      setSheetOpen(false);
-      setSheetCustomer(null);
-    }
     setDeleteCustomerRecord(null);
   };
 
@@ -89,7 +81,7 @@ export function CustomersTable() {
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openSheetById}
+          getHref={recordRoutes.customer}
           canOpen={(id) => customers.some((entry) => entry.id === id)}
         />
       </React.Suspense>
@@ -114,9 +106,11 @@ export function CustomersTable() {
               <Download className="h-4 w-4" />
               Export Excel
             </Button>
-            <Button onClick={() => openSheet(null)}>
-              <Plus className="h-4 w-4" />
-              Add Customer
+            <Button asChild>
+              <Link href={recordNewRoutes.customer}>
+                <Plus className="h-4 w-4" />
+                Add Customer
+              </Link>
             </Button>
           </>
         }
@@ -125,7 +119,8 @@ export function CustomersTable() {
       <div className="space-y-4">
         <CustomersMobileList
           customers={paginatedItems}
-          onOpen={openSheet}
+          users={users}
+          onOpen={(customer) => goToCustomer(customer.id)}
           onDelete={(customer) => {
             setDeleteError("");
             setDeleteCustomerRecord(customer);
@@ -157,6 +152,8 @@ export function CustomersTable() {
                   <TableHead>Account Owner</TableHead>
                   <TableHead>Plant Location(s)</TableHead>
                   <TableHead>Vendor Status</TableHead>
+                  <TableHead>Added on</TableHead>
+                  <TableHead>Added by</TableHead>
                   <TableHead className="w-[88px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -165,7 +162,7 @@ export function CustomersTable() {
                   <TableRow
                     key={customer.id}
                     className="cursor-pointer"
-                    onClick={() => openSheet(customer)}
+                    onClick={() => goToCustomer(customer.id)}
                   >
                     <TableCell className="max-w-[200px] truncate font-medium">
                       {customer.name}
@@ -195,9 +192,15 @@ export function CustomersTable() {
                         {customer.vendorStatus}
                       </Badge>
                     </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDate(customer.createdAt)}
+                    </TableCell>
+                    <TableCell className="max-w-[140px] truncate">
+                      {getUserName(users, customer.createdByUserId)}
+                    </TableCell>
                     <TableCell onClick={(event) => event.stopPropagation()}>
                       <TableActions
-                        onEdit={() => openSheet(customer)}
+                        onEdit={() => goToCustomer(customer.id)}
                         onDelete={() => {
                           setDeleteError("");
                           setDeleteCustomerRecord(customer);
@@ -224,15 +227,6 @@ export function CustomersTable() {
           <p className="text-sm text-destructive">{deleteError}</p>
         )}
       </div>
-
-      <CustomerSheet
-        customer={sheetCustomer}
-        open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open);
-          if (!open) setSheetCustomer(null);
-        }}
-      />
 
       <DeleteConfirmDialog
         open={!!deleteCustomerRecord}

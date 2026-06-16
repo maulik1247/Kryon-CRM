@@ -9,8 +9,9 @@ import type {
   DealTask,
   DocumentExchange,
 } from "./types";
+import { withAuditFields } from "./list-helpers";
 
-export const suppliers: Supplier[] = [
+const suppliersSeed: Omit<Supplier, "createdAt" | "createdByUserId">[] = [
   {
     id: "supp-1",
     name: "Nidec India",
@@ -46,7 +47,9 @@ export const suppliers: Supplier[] = [
   },
 ];
 
-export const products: Product[] = [
+export const suppliers: Supplier[] = withAuditFields(suppliersSeed);
+
+const productsSeed: Omit<Product, "createdAt" | "createdByUserId">[] = [
   {
     id: "prod-1",
     sku: "KRN-BLDC-AC-01",
@@ -130,7 +133,9 @@ export const products: Product[] = [
   },
 ];
 
-export const customers: Customer[] = [
+export const products: Product[] = withAuditFields(productsSeed);
+
+const customersSeed: Omit<Customer, "createdAt" | "createdByUserId">[] = [
   {
     id: "cust-1",
     name: "Voltas Beko",
@@ -354,7 +359,9 @@ export const customers: Customer[] = [
   },
 ];
 
-export const contacts: Contact[] = [
+export const customers: Customer[] = withAuditFields(customersSeed);
+
+const contactsSeed: Omit<Contact, "createdAt" | "createdByUserId">[] = [
   {
     id: "cont-1",
     customerId: "cust-1",
@@ -470,17 +477,34 @@ export const contacts: Contact[] = [
   },
 ];
 
+export const contacts: Contact[] = withAuditFields(contactsSeed);
+
 export const deals: Deal[] = [
   {
     id: "DEAL-2026-001",
     customerId: "cust-1",
     contactId: "cont-1",
-    productId: "prod-1",
-    quantity: 250000,
-    estimatedAnnualValue: 462500000,
-    currentSupplierPrice: 2100,
-    currentSupplierName: "Nidec India",
-    quotedPrice: 1850,
+    lineItems: [
+      {
+        id: "dli-001-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-1",
+        quantity: 250000,
+        quotedPrice: 1850,
+        currentSupplierId: "supp-1",
+        currentSupplierPrice: 2100,
+      },
+      {
+        id: "dli-001-2",
+        productCategory: "PMSM",
+        productId: "prod-5",
+        quantity: 80000,
+        quotedPrice: 2200,
+        currentSupplierId: "supp-1",
+        currentSupplierPrice: 2500,
+      },
+    ],
+    estimatedAnnualValue: 638500000,
     confidence: 75,
     stage: "Commercial Negotiation",
     stageEnteredAt: "2026-05-15",
@@ -491,12 +515,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-002",
     customerId: "cust-2",
     contactId: "cont-3",
-    productId: "prod-2",
-    quantity: 180000,
+    lineItems: [
+      {
+        id: "dli-002-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-2",
+        quantity: 180000,
+        quotedPrice: 420,
+        currentSupplierId: "supp-3",
+        currentSupplierPrice: 480,
+      },
+    ],
     estimatedAnnualValue: 75600000,
-    currentSupplierPrice: 480,
-    currentSupplierName: "Crompton Greaves Motors",
-    quotedPrice: 420,
     confidence: 100,
     stage: "PO Received",
     stageEnteredAt: "2026-06-01",
@@ -507,12 +537,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-003",
     customerId: "cust-3",
     contactId: "cont-5",
-    productId: "prod-3",
-    quantity: 120000,
+    lineItems: [
+      {
+        id: "dli-003-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-3",
+        quantity: 120000,
+        quotedPrice: 310,
+        currentSupplierId: "supp-2",
+        currentSupplierPrice: 350,
+      },
+    ],
     estimatedAnnualValue: 37200000,
-    currentSupplierPrice: 350,
-    currentSupplierName: "Bharat Electronics Motors",
-    quotedPrice: 310,
     confidence: 50,
     stage: "Discussion",
     stageEnteredAt: "2026-04-20",
@@ -523,12 +559,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-004",
     customerId: "cust-4",
     contactId: "cont-6",
-    productId: "prod-4",
-    quantity: 80000,
+    lineItems: [
+      {
+        id: "dli-004-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-4",
+        quantity: 80000,
+        quotedPrice: 680,
+        currentSupplierId: "supp-4",
+        currentSupplierPrice: 750,
+      },
+    ],
     estimatedAnnualValue: 54400000,
-    currentSupplierPrice: 750,
-    currentSupplierName: "Orient Electric Components",
-    quotedPrice: 680,
     confidence: 75,
     stage: "PFI Sent",
     stageEnteredAt: "2026-05-22",
@@ -539,12 +581,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-005",
     customerId: "cust-5",
     contactId: "cont-7",
-    productId: "prod-5",
-    quantity: 150000,
+    lineItems: [
+      {
+        id: "dli-005-1",
+        productCategory: "PMSM",
+        productId: "prod-5",
+        quantity: 150000,
+        quotedPrice: 2200,
+        currentSupplierId: "supp-1",
+        currentSupplierPrice: 2500,
+      },
+    ],
     estimatedAnnualValue: 330000000,
-    currentSupplierPrice: 2500,
-    currentSupplierName: "Nidec India",
-    quotedPrice: 2200,
     confidence: 50,
     stage: "Commercial Negotiation",
     stageEnteredAt: "2026-05-01",
@@ -555,12 +603,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-006",
     customerId: "cust-6",
     contactId: "cont-9",
-    productId: "prod-6",
-    quantity: 45000,
+    lineItems: [
+      {
+        id: "dli-006-1",
+        productCategory: "BLDC Outdoor",
+        productId: "prod-6",
+        quantity: 45000,
+        quotedPrice: 1450,
+        currentSupplierId: "supp-5",
+        currentSupplierPrice: 1650,
+      },
+    ],
     estimatedAnnualValue: 65250000,
-    currentSupplierPrice: 1650,
-    currentSupplierName: "Siemens Drive Systems",
-    quotedPrice: 1450,
     confidence: 25,
     stage: "Discussion",
     stageEnteredAt: "2026-03-10",
@@ -571,12 +625,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-007",
     customerId: "cust-1",
     contactId: "cont-2",
-    productId: "prod-1",
-    quantity: 50000,
+    lineItems: [
+      {
+        id: "dli-007-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-1",
+        quantity: 50000,
+        quotedPrice: 1850,
+        currentSupplierId: "supp-1",
+        currentSupplierPrice: 2100,
+      },
+    ],
     estimatedAnnualValue: 92500000,
-    currentSupplierPrice: 2100,
-    currentSupplierName: "Nidec India",
-    quotedPrice: 1850,
     confidence: 25,
     stage: "Lead - Hot",
     stageEnteredAt: "2026-06-05",
@@ -587,12 +647,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-008",
     customerId: "cust-2",
     contactId: "cont-4",
-    productId: "prod-2",
-    quantity: 100000,
+    lineItems: [
+      {
+        id: "dli-008-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-2",
+        quantity: 100000,
+        quotedPrice: 420,
+        currentSupplierId: "supp-3",
+        currentSupplierPrice: 480,
+      },
+    ],
     estimatedAnnualValue: 42000000,
-    currentSupplierPrice: 480,
-    currentSupplierName: "Crompton Greaves Motors",
-    quotedPrice: 420,
     confidence: 50,
     stage: "Lead - Hot",
     stageEnteredAt: "2026-05-10",
@@ -603,12 +669,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-009",
     customerId: "cust-3",
     contactId: "cont-5",
-    productId: "prod-3",
-    quantity: 30000,
+    lineItems: [
+      {
+        id: "dli-009-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-3",
+        quantity: 30000,
+        quotedPrice: 310,
+        currentSupplierId: "supp-2",
+        currentSupplierPrice: 350,
+      },
+    ],
     estimatedAnnualValue: 9300000,
-    currentSupplierPrice: 350,
-    currentSupplierName: "Bharat Electronics Motors",
-    quotedPrice: 310,
     confidence: 0,
     stage: "Closed Lost",
     stageEnteredAt: "2026-02-15",
@@ -619,12 +691,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-010",
     customerId: "cust-5",
     contactId: "cont-8",
-    productId: "prod-5",
-    quantity: 200000,
+    lineItems: [
+      {
+        id: "dli-010-1",
+        productCategory: "PMSM",
+        productId: "prod-5",
+        quantity: 200000,
+        quotedPrice: 2200,
+        currentSupplierId: "supp-1",
+        currentSupplierPrice: 2500,
+      },
+    ],
     estimatedAnnualValue: 440000000,
-    currentSupplierPrice: 2500,
-    currentSupplierName: "Nidec India",
-    quotedPrice: 2200,
     confidence: 100,
     stage: "Closed Won",
     stageEnteredAt: "2026-04-10",
@@ -635,12 +713,18 @@ export const deals: Deal[] = [
     id: "DEAL-2026-011",
     customerId: "cust-4",
     contactId: "cont-6",
-    productId: "prod-4",
-    quantity: 10000,
+    lineItems: [
+      {
+        id: "dli-011-1",
+        productCategory: "BLDC Indoor",
+        productId: "prod-4",
+        quantity: 10000,
+        quotedPrice: 680,
+        currentSupplierId: "supp-4",
+        currentSupplierPrice: 750,
+      },
+    ],
     estimatedAnnualValue: 6800000,
-    currentSupplierPrice: 750,
-    currentSupplierName: "Orient Electric Components",
-    quotedPrice: 680,
     confidence: 25,
     stage: "Lead - Hot",
     stageEnteredAt: "2026-01-15",

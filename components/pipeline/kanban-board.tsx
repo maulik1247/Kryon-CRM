@@ -14,12 +14,13 @@ import {
 } from "@/components/reui/kanban";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DealCard } from "./deal-card";
-import { DealSheet } from "@/components/deals/deal-sheet";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { DealsMobileList } from "./deals-mobile-list";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { filterDealsForUser, canUserAccessDeal } from "@/lib/user-helpers";
+import { recordRoutes } from "@/lib/record-routes";
 import { getStageColumnStyle } from "@/lib/pipeline-styles";
 import type { Deal, PipelineStageConfig } from "@/lib/types";
 import { cn, formatCurrencyCr } from "@/lib/utils";
@@ -152,11 +153,10 @@ export function KanbanBoard() {
     [deals, currentUser, users]
   );
 
+  const { goToDeal } = useRecordNavigation();
   const [columns, setColumns] = React.useState(() =>
     dealsToColumns(visibleDeals, pipelineStages)
   );
-  const [selectedDeal, setSelectedDeal] = React.useState<Deal | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
 
   React.useEffect(() => {
     setColumns(dealsToColumns(visibleDeals, pipelineStages));
@@ -175,19 +175,8 @@ export function KanbanBoard() {
   };
 
   const handleDealClick = (deal: Deal) => {
-    setSelectedDeal(deal);
-    setSheetOpen(true);
+    goToDeal(deal.id);
   };
-
-  const openDealFromUrl = React.useCallback(
-    (id: string) => {
-      const deal = getDealById(id);
-      if (deal && canUserAccessDeal(deal, currentUser, users)) {
-        handleDealClick(deal);
-      }
-    },
-    [getDealById, currentUser, users]
-  );
 
   const findDeal = (id: string) => {
     for (const stageDeals of Object.values(columns)) {
@@ -201,7 +190,7 @@ export function KanbanBoard() {
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openDealFromUrl}
+          getHref={recordRoutes.deal}
           canOpen={(id) => {
             const deal = getDealById(id);
             return deal
@@ -253,16 +242,6 @@ export function KanbanBoard() {
           </KanbanOverlay>
         </Kanban>
       </div>
-
-      <DealSheet
-        deal={
-          selectedDeal
-            ? getDealById(selectedDeal.id) ?? selectedDeal
-            : null
-        }
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-      />
     </>
   );
 }

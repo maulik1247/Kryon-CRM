@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { SUPPLIER_TYPES } from "@/lib/supplier-constants";
 import type { Supplier, SupplierType } from "@/lib/types";
@@ -42,13 +43,21 @@ function supplierToForm(supplier: Supplier): SupplierFormState {
   };
 }
 
-function formToSupplier(form: SupplierFormState, id: string): Supplier {
+function formToSupplier(
+  form: SupplierFormState,
+  id: string,
+  existing?: Supplier,
+  createdByUserId?: string
+): Supplier {
   return {
     id,
     name: form.name.trim(),
     type: form.type,
     region: form.region.trim(),
     notes: form.notes.trim() || undefined,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    createdByUserId:
+      existing?.createdByUserId ?? createdByUserId ?? "user-admin",
   };
 }
 
@@ -63,7 +72,9 @@ export function SupplierSheet({
   open,
   onOpenChange,
 }: SupplierSheetProps) {
-  const { addSupplier, updateSupplier, getSupplierById } = useCrmData();
+  const { currentUser } = useAuth();
+  const { addSupplier, updateSupplier, deleteSupplier, getSupplierById } =
+    useCrmData();
 
   const supplier = supplierProp
     ? getSupplierById(supplierProp.id) ?? supplierProp
@@ -88,12 +99,20 @@ export function SupplierSheet({
     e.preventDefault();
 
     if (isAdd) {
-      addSupplier(formToSupplier(form, `supp-${Date.now()}`));
+      addSupplier(
+        formToSupplier(form, `supp-${Date.now()}`, undefined, currentUser.id)
+      );
     } else if (supplier) {
-      updateSupplier(supplier.id, formToSupplier(form, supplier.id));
+      updateSupplier(supplier.id, formToSupplier(form, supplier.id, supplier));
     }
 
     onOpenChange(false);
+  };
+
+  const handleDelete = () => {
+    if (!supplier) return;
+    const removed = deleteSupplier(supplier.id);
+    if (removed) onOpenChange(false);
   };
 
   return (
@@ -161,15 +180,28 @@ export function SupplierSheet({
             </FormField>
           </div>
 
-          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-            <SheetClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
+            {!isAdd ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+              >
+                Delete
               </Button>
-            </SheetClose>
-            <Button type="submit">
-              {isAdd ? "Save Supplier" : "Save Changes"}
-            </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <SheetClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </SheetClose>
+              <Button type="submit">
+                {isAdd ? "Save Supplier" : "Save Changes"}
+              </Button>
+            </div>
           </SheetFooter>
         </form>
       </SheetContent>

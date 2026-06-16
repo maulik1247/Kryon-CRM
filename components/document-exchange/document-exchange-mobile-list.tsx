@@ -9,16 +9,20 @@ import {
 import { DocumentExchangeExpandedDetails } from "./document-exchange-expanded-details";
 import { getDocumentExchangeStatusVariant } from "@/lib/document-exchange-constants";
 import { useCrmData } from "@/lib/crm-data-provider";
-import type { DocumentExchange } from "@/lib/types";
+import type { CrmUser, DocumentExchange } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 interface DocumentExchangeMobileListProps {
   records: DocumentExchange[];
+  users: CrmUser[];
   onOpen: (record: DocumentExchange) => void;
   onDelete: (record: DocumentExchange) => void;
 }
 
 export function DocumentExchangeMobileList({
   records,
+  users,
   onOpen,
   onDelete,
 }: DocumentExchangeMobileListProps) {
@@ -52,11 +56,15 @@ export function DocumentExchangeMobileList({
                   </div>
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {customer?.name ?? "Unknown customer"} · {record.exchangeDate}
+                  {customer?.name ?? "Unknown customer"} · {record.exchangeDate}{" "}
+                  · Added on {formatDate(record.createdAt)} · Added by{" "}
+                  {getUserName(users, record.createdByUserId)}
                 </p>
               </div>
             }
-            details={<DocumentExchangeExpandedDetails record={record} />}
+            details={
+              <DocumentExchangeExpandedDetails record={record} users={users} />
+            }
             actions={
               <TableActions
                 onEdit={() => onOpen(record)}

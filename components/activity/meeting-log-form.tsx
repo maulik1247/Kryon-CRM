@@ -5,24 +5,23 @@ import { Plus, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import { FormSection } from "@/components/shared/form-section";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { UserMultiSelect } from "@/components/shared/user-multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { CONFIDENCE_FORM_OPTIONS } from "@/lib/confidence-constants";
 import {
   CUSTOMER_SENTIMENTS,
-  getDefaultDateTimeLocal,
+  combineActivityDateTime,
+  splitActivityDateTime,
   MEETING_PURPOSES,
+  MEETING_LOG_RECORD_TYPE_OPTIONS,
+  showsVisitFormatFields,
   VISIT_TYPES,
 } from "@/lib/meeting-log-constants";
 import { canAssignDeals } from "@/lib/role-permissions";
@@ -118,17 +117,16 @@ export function MeetingLogForm({
       ? getDealById(defaultDealId)
       : undefined;
 
-  const [activeTab, setActiveTab] = React.useState("details");
+
   const [loggedByUserId, setLoggedByUserId] = React.useState(
     activity?.loggedByUserId ?? currentUser.id
   );
-  const [occurredAt, setOccurredAt] = React.useState(() => {
-    if (!activity?.occurredAt) return getDefaultDateTimeLocal();
-    if (activity.occurredAt.includes("T")) {
-      return activity.occurredAt.slice(0, 16);
-    }
-    return `${activity.occurredAt}T10:00`;
-  });
+  const initialDateTime = React.useMemo(
+    () => splitActivityDateTime(activity?.occurredAt),
+    [activity?.occurredAt]
+  );
+  const [occurredDate, setOccurredDate] = React.useState(initialDateTime.date);
+  const [occurredTime, setOccurredTime] = React.useState(initialDateTime.time);
   const [activityType, setActivityType] = React.useState<DealActivityType>(
     activity?.type ?? "visit"
   );
@@ -194,6 +192,12 @@ export function MeetingLogForm({
   );
 
   React.useEffect(() => {
+    const next = splitActivityDateTime(activity?.occurredAt);
+    setOccurredDate(next.date);
+    setOccurredTime(next.time);
+  }, [activity?.id, activity?.occurredAt]);
+
+  React.useEffect(() => {
     if (!customerId && visibleCustomers[0]) {
       setCustomerId(visibleCustomers[0].id);
     }
@@ -224,15 +228,18 @@ export function MeetingLogForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!summary.trim() || !dealId || !customerId) return;
+    if (!summary.trim() || !dealId || !customerId || !occurredDate) return;
+
+    const occurredAt = combineActivityDateTime(occurredDate, occurredTime);
+    const includeVisitFields = showsVisitFormatFields(activityType);
 
     const payload: Omit<DealActivity, "id" | "createdAt"> = {
       dealId,
       customerId,
       type: activityType,
       occurredAt,
-      visitType,
-      purpose,
+      visitType: includeVisitFields ? visitType : undefined,
+      purpose: includeVisitFields ? purpose : undefined,
       ourAttendeeIds,
       customerAttendees,
       summary: summary.trim(),
@@ -288,105 +295,53 @@ export function MeetingLogForm({
 
   return (
     <form id={formId} onSubmit={handleSubmit}>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-4">
-          <TabsTrigger value="details">Details</TabsTrigger>
-          <TabsTrigger value="attendees">
-            Attendees
-            {ourAttendeeIds.length + customerAttendees.length > 0 ? (
-              <span className="ml-1 text-xs text-muted-foreground">
-                ({ourAttendeeIds.length + customerAttendees.length})
-              </span>
-            ) : null}
-          </TabsTrigger>
-          <TabsTrigger value="actions">
-            Actions
-            {actionItems.length > 0 ? (
-              <span className="ml-1 text-xs text-muted-foreground">
-                ({actionItems.length})
-              </span>
-            ) : null}
-          </TabsTrigger>
-          <TabsTrigger value="attachments">
-            Files
-            {attachments.length > 0 ? (
-              <span className="ml-1 text-xs text-muted-foreground">
-                ({attachments.length})
-              </span>
-            ) : null}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          value="details"
-          className="mt-4 space-y-4 data-[state=inactive]:hidden"
-        >
-          <FormField label="Logged by" htmlFor="meeting-user">
-            {canAssign ? (
-              <FormSelect
-                id="meeting-user"
-                value={loggedByUserId}
-                onValueChange={setLoggedByUserId}
-                options={activeUsers.map((user) => ({
-                  value: user.id,
-                  label: user.name,
-                }))}
-              />
-            ) : (
-              <Input
-                id="meeting-user"
-                readOnly
-                value={currentUser.name}
-                className="bg-muted/30"
-              />
-            )}
-          </FormField>
-
-          <FormField label="Visit date & time" htmlFor="meeting-datetime">
-            <Input
-              id="meeting-datetime"
-              type="datetime-local"
-              value={occurredAt}
-              onChange={(e) => setOccurredAt(e.target.value)}
-              required
-            />
-          </FormField>
-
+      <div className="space-y-8">
+        <FormSection title="Details">
           <FormField label="Record type" htmlFor="meeting-record-type">
             <FormSelect
               id="meeting-record-type"
               value={activityType}
               onValueChange={(value) => setActivityType(value as DealActivityType)}
-              options={[
-                { value: "visit", label: "Visit" },
-                { value: "meeting", label: "Meeting" },
-              ]}
-            />
-          </FormField>
-
-          <FormField label="Visit type" htmlFor="meeting-visit-type">
-            <FormSelect
-              id="meeting-visit-type"
-              value={visitType}
-              onValueChange={(value) => setVisitType(value as typeof visitType)}
-              options={VISIT_TYPES.map((type) => ({
-                value: type,
-                label: type,
+              options={MEETING_LOG_RECORD_TYPE_OPTIONS.map((option) => ({
+                value: option.value,
+                label: option.label,
               }))}
             />
           </FormField>
 
-          <FormField label="Purpose" htmlFor="meeting-purpose">
-            <FormSelect
-              id="meeting-purpose"
-              value={purpose}
-              onValueChange={(value) => setPurpose(value as typeof purpose)}
-              options={MEETING_PURPOSES.map((entry) => ({
-                value: entry,
-                label: entry,
-              }))}
-            />
-          </FormField>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label={
+                activityType === "email"
+                  ? "Date"
+                  : activityType === "note"
+                    ? "Date"
+                    : "Visit date"
+              }
+              htmlFor="meeting-date"
+            >
+              <DatePicker
+                value={occurredDate}
+                onChange={setOccurredDate}
+                placeholder="Select date"
+              />
+            </FormField>
+
+            <FormField
+              label={
+                activityType === "email" || activityType === "note"
+                  ? "Time"
+                  : "Visit time"
+              }
+              htmlFor="meeting-time"
+            >
+              <TimePicker
+                value={occurredTime}
+                onChange={setOccurredTime}
+                placeholder="Select time"
+              />
+            </FormField>
+          </div>
 
           <FormField label="Customer" htmlFor="meeting-customer">
             <FormSelect
@@ -442,79 +397,69 @@ export function MeetingLogForm({
               placeholder="What was discussed?"
             />
           </FormField>
+        </FormSection>
 
-          <FormField label="Key decisions" htmlFor="meeting-decisions" optional>
-            <Textarea
-              id="meeting-decisions"
-              rows={2}
-              value={keyDecisions}
-              onChange={(e) => setKeyDecisions(e.target.value)}
-            />
+        <FormSection title="Attendees">
+          <FormField label="Logged by" htmlFor="meeting-user">
+            {canAssign ? (
+              <FormSelect
+                id="meeting-user"
+                value={loggedByUserId}
+                onValueChange={setLoggedByUserId}
+                options={activeUsers.map((user) => ({
+                  value: user.id,
+                  label: user.name,
+                }))}
+              />
+            ) : (
+              <Input
+                id="meeting-user"
+                readOnly
+                value={currentUser.name}
+                className="bg-muted/30"
+              />
+            )}
           </FormField>
 
-          <FormField label="Confidence updated" htmlFor="meeting-confidence" optional>
-            <FormSelect
-              id="meeting-confidence"
-              value={confidenceUpdated}
-              onValueChange={setConfidenceUpdated}
-              options={[
-                { value: "__none__", label: "No change" },
-                ...CONFIDENCE_FORM_OPTIONS,
-              ]}
-            />
-          </FormField>
+          {showsVisitFormatFields(activityType) ? (
+            <>
+              <FormField label="Visit type" htmlFor="meeting-visit-type">
+                <FormSelect
+                  id="meeting-visit-type"
+                  value={visitType}
+                  onValueChange={(value) =>
+                    setVisitType(value as typeof visitType)
+                  }
+                  options={VISIT_TYPES.map((type) => ({
+                    value: type,
+                    label: type,
+                  }))}
+                />
+              </FormField>
 
-          <FormField label="Customer sentiment" htmlFor="meeting-sentiment">
-            <FormSelect
-              id="meeting-sentiment"
-              value={customerSentiment}
-              onValueChange={setCustomerSentiment}
-              options={[
-                { value: "__none__", label: "Not recorded" },
-                ...CUSTOMER_SENTIMENTS.map((sentiment) => ({
-                  value: sentiment,
-                  label: sentiment,
-                })),
-              ]}
-            />
-          </FormField>
+              <FormField label="Purpose" htmlFor="meeting-purpose">
+                <FormSelect
+                  id="meeting-purpose"
+                  value={purpose}
+                  onValueChange={(value) => setPurpose(value as typeof purpose)}
+                  options={MEETING_PURPOSES.map((entry) => ({
+                    value: entry,
+                    label: entry,
+                  }))}
+                />
+              </FormField>
+            </>
+          ) : null}
 
-          <FormField label="Competitor discussed" htmlFor="meeting-competitor">
-            <FormSelect
-              id="meeting-competitor"
-              value={competitorSupplierId}
-              onValueChange={setCompetitorSupplierId}
-              options={[
-                { value: "__none__", label: "None" },
-                ...suppliers.map((supplier) => ({
-                  value: supplier.id,
-                  label: supplier.name,
-                })),
-              ]}
-            />
-          </FormField>
-
-          <FormField label="Next follow-up" htmlFor="meeting-follow-up" optional>
-            <DatePicker
-              value={nextFollowUpDate}
-              onChange={setNextFollowUpDate}
-              placeholder="Select date"
-            />
-          </FormField>
-        </TabsContent>
-
-        <TabsContent
-          value="attendees"
-          className="mt-4 space-y-4 data-[state=inactive]:hidden"
-        >
           <UserMultiSelect
             id="meeting-our-attendees"
             label="Our attendees"
+            optional
             value={ourAttendeeIds}
             onChange={setOurAttendeeIds}
           />
 
-          <FormField label="Customer attendees" htmlFor="meeting-customer-attendee">
+          <FormField label="Customer attendees" htmlFor="meeting-customer-attendee" optional>
             <FormSelect
               id="meeting-customer-attendee"
               value={contactPicker}
@@ -564,12 +509,26 @@ export function MeetingLogForm({
               No customer attendees added yet.
             </p>
           )}
-        </TabsContent>
+        </FormSection>
 
-        <TabsContent
-          value="actions"
-          className="mt-4 space-y-4 data-[state=inactive]:hidden"
-        >
+        <FormSection title="Actions">
+          <FormField label="Key decisions" htmlFor="meeting-decisions" optional>
+            <Textarea
+              id="meeting-decisions"
+              rows={2}
+              value={keyDecisions}
+              onChange={(e) => setKeyDecisions(e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Next follow-up" htmlFor="meeting-follow-up" optional>
+            <DatePicker
+              value={nextFollowUpDate}
+              onChange={setNextFollowUpDate}
+              placeholder="Select date"
+            />
+          </FormField>
+
           {actionItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No action items yet.
@@ -652,26 +611,69 @@ export function MeetingLogForm({
             <Plus className="h-4 w-4" />
             Add action item
           </Button>
-        </TabsContent>
+        </FormSection>
 
-        <TabsContent
-          value="attachments"
-          className="mt-4 space-y-4 data-[state=inactive]:hidden"
-        >
+        <FormSection title="Attachments">
           <DocumentFilesEditor
             inputId="meeting-attachments"
             label="Attachments"
+            optional
             value={attachments}
             onChange={setAttachments}
-            helperText="PDF, DOC, JPG — optional"
+            helperText="PDF, DOC, JPG"
             emptyMessage="No files attached."
           />
-        </TabsContent>
-      </Tabs>
+
+          <FormField label="Confidence updated" htmlFor="meeting-confidence" optional>
+            <FormSelect
+              id="meeting-confidence"
+              value={confidenceUpdated}
+              onValueChange={setConfidenceUpdated}
+              options={[
+                { value: "__none__", label: "No change" },
+                ...CONFIDENCE_FORM_OPTIONS,
+              ]}
+            />
+          </FormField>
+
+          <FormField label="Customer sentiment" htmlFor="meeting-sentiment" optional>
+            <FormSelect
+              id="meeting-sentiment"
+              value={customerSentiment}
+              onValueChange={setCustomerSentiment}
+              options={[
+                { value: "__none__", label: "Not recorded" },
+                ...CUSTOMER_SENTIMENTS.map((sentiment) => ({
+                  value: sentiment,
+                  label: sentiment,
+                })),
+              ]}
+            />
+          </FormField>
+
+          {confidenceUpdated !== "__none__" &&
+          Number(confidenceUpdated) <= 50 ? (
+            <FormField label="Competitor discussed" htmlFor="meeting-competitor" optional>
+              <FormSelect
+                id="meeting-competitor"
+                value={competitorSupplierId}
+                onValueChange={setCompetitorSupplierId}
+                options={[
+                  { value: "__none__", label: "None" },
+                  ...suppliers.map((supplier) => ({
+                    value: supplier.id,
+                    label: supplier.name,
+                  })),
+                ]}
+              />
+            </FormField>
+          ) : null}
+        </FormSection>
+      </div>
 
       {!hideActions ? (
         <div className="mt-4 flex justify-end">
-          <Button type="submit" disabled={!summary.trim() || !dealId}>
+          <Button type="submit" disabled={!summary.trim() || !dealId || !occurredDate}>
             {submitLabel}
           </Button>
         </div>

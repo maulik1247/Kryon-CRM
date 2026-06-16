@@ -21,19 +21,30 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
-import { ContactSheet } from "./contact-sheet";
+import Link from "next/link";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
+import { useAuth } from "@/lib/auth-provider";
 import { ContactsMobileList } from "./contacts-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
+import { sortByCreatedAtDesc } from "@/lib/list-helpers";
+import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
+import { getUserName } from "@/lib/user-helpers";
 import type { Contact } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
 import { Star } from "lucide-react";
 
 export function ContactsTable() {
+  const { users } = useAuth();
   const { contacts, getCustomerById, deleteContact } = useCrmData();
-  const [sheetContact, setSheetContact] = React.useState<Contact | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToContact } = useRecordNavigation();
   const [deleteContactRecord, setDeleteContactRecord] =
     React.useState<Contact | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const sortedContacts = React.useMemo(
+    () => sortByCreatedAtDesc(contacts),
+    [contacts]
+  );
 
   const {
     paginatedItems,
@@ -43,20 +54,7 @@ export function ContactsTable() {
     rangeStart,
     rangeEnd,
     setPage,
-  } = usePagination(contacts);
-
-  const openSheet = (contact: Contact | null) => {
-    setSheetContact(contact);
-    setSheetOpen(true);
-  };
-
-  const openSheetById = React.useCallback(
-    (id: string) => {
-      const contact = contacts.find((entry) => entry.id === id);
-      if (contact) openSheet(contact);
-    },
-    [contacts]
-  );
+  } = usePagination(sortedContacts);
 
   const handleDeleteConfirm = () => {
     if (!deleteContactRecord) return;
@@ -69,10 +67,6 @@ export function ContactsTable() {
       return;
     }
 
-    if (sheetContact?.id === deleteContactRecord.id) {
-      setSheetOpen(false);
-      setSheetContact(null);
-    }
     setDeleteContactRecord(null);
   };
 
@@ -80,7 +74,7 @@ export function ContactsTable() {
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openSheetById}
+          getHref={recordRoutes.contact}
           canOpen={(id) => contacts.some((entry) => entry.id === id)}
         />
       </React.Suspense>
@@ -94,9 +88,11 @@ export function ContactsTable() {
           </span>
         }
         actions={
-          <Button onClick={() => openSheet(null)}>
-            <Plus className="h-4 w-4" />
-            Add Contact
+          <Button asChild>
+            <Link href={recordNewRoutes.contact}>
+              <Plus className="h-4 w-4" />
+              Add Contact
+            </Link>
           </Button>
         }
       />
@@ -109,9 +105,11 @@ export function ContactsTable() {
               title="No contacts yet"
               description="Add decision makers and champions for your OEM accounts."
               action={
-                <Button onClick={() => openSheet(null)}>
-                  <Plus className="h-4 w-4" />
-                  Add Contact
+                <Button asChild>
+                  <Link href={recordNewRoutes.contact}>
+                    <Plus className="h-4 w-4" />
+                    Add Contact
+                  </Link>
                 </Button>
               }
             />
@@ -120,10 +118,11 @@ export function ContactsTable() {
           <>
             <ContactsMobileList
               contacts={paginatedItems}
+              users={users}
               customerName={(customerId) =>
                 getCustomerById(customerId)?.name
               }
-              onOpen={openSheet}
+              onOpen={(contact) => goToContact(contact.id)}
               onDelete={(contact) => {
                 setDeleteError("");
                 setDeleteContactRecord(contact);
@@ -156,21 +155,25 @@ export function ContactsTable() {
                 <TableHead>Buying Role</TableHead>
                 <TableHead>Mobile</TableHead>
                 <TableHead className="w-20 text-center">Primary</TableHead>
+                <TableHead>Added on</TableHead>
+                <TableHead>Added by</TableHead>
                 <TableHead className="w-[88px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {contacts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="p-0">
+                  <TableCell colSpan={10} className="p-0">
                     <EmptyState
                       icon={Users}
                       title="No contacts yet"
                       description="Add decision makers and champions for your OEM accounts."
                       action={
-                        <Button onClick={() => openSheet(null)}>
-                          <Plus className="h-4 w-4" />
-                          Add Contact
+                        <Button asChild>
+                          <Link href={recordNewRoutes.contact}>
+                            <Plus className="h-4 w-4" />
+                            Add Contact
+                          </Link>
                         </Button>
                       }
                       className="m-4 border-none bg-transparent shadow-none"
@@ -184,7 +187,7 @@ export function ContactsTable() {
                   <TableRow
                     key={contact.id}
                     className="cursor-pointer"
-                    onClick={() => openSheet(contact)}
+                    onClick={() => goToContact(contact.id)}
                   >
                     <TableCell className="max-w-[180px] truncate font-medium">
                       {contact.name}
@@ -211,9 +214,15 @@ export function ContactsTable() {
                         <span className="text-muted-foreground">—</span>
                       )}
                     </TableCell>
+                    <TableCell className="whitespace-nowrap">
+                      {formatDate(contact.createdAt)}
+                    </TableCell>
+                    <TableCell className="max-w-[140px] truncate">
+                      {getUserName(users, contact.createdByUserId)}
+                    </TableCell>
                     <TableCell>
                       <TableActions
-                        onEdit={() => openSheet(contact)}
+                        onEdit={() => goToContact(contact.id)}
                         onDelete={() => {
                           setDeleteError("");
                           setDeleteContactRecord(contact);
@@ -242,15 +251,6 @@ export function ContactsTable() {
           <p className="text-sm text-destructive">{deleteError}</p>
         )}
       </div>
-
-      <ContactSheet
-        contact={sheetContact}
-        open={sheetOpen}
-        onOpenChange={(open) => {
-          setSheetOpen(open);
-          if (!open) setSheetContact(null);
-        }}
-      />
 
       <DeleteConfirmDialog
         open={!!deleteContactRecord}

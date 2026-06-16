@@ -74,7 +74,15 @@ export function CustomerSearchSelect({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+      <PopoverContent
+        className="z-[100] w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+        side="bottom"
+        sideOffset={4}
+        collisionPadding={12}
+        onWheel={(e) => e.stopPropagation()}
+        onTouchMove={(e) => e.stopPropagation()}
+      >
         <div className="border-b p-2">
           <Input
             value={query}
@@ -83,7 +91,11 @@ export function CustomerSearchSelect({
             autoFocus
           />
         </div>
-        <div className="max-h-60 overflow-y-auto p-1">
+        <div
+          className="max-h-60 overflow-y-auto overscroll-contain p-1"
+          onWheel={(e) => e.stopPropagation()}
+          onTouchMove={(e) => e.stopPropagation()}
+        >
           {filteredCustomers.length === 0 ? (
             <p className="px-2 py-6 text-center text-sm text-muted-foreground">
               No customers found.

@@ -1,19 +1,13 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { RecordFormPage } from "@/components/records/record-form-page";
 import {
   Form,
   FormControl,
@@ -29,13 +23,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
 import { FormSection } from "@/components/shared/form-section";
+import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
   formatLeadDate,
@@ -47,6 +36,7 @@ import {
 import { CustomerProductDetailsEditor } from "./customer-product-details-editor";
 import { CustomerPlantLocationsEditor } from "./customer-plant-locations-editor";
 import { CustomerDocumentsEditor } from "./customer-documents-editor";
+import { recordListRoutes } from "@/lib/record-routes";
 import type {
   Customer,
   CustomerProductDetails,
@@ -117,7 +107,8 @@ function customerToForm(customer: Customer): CustomerFormState {
 function formToCustomer(
   form: CustomerFormState,
   id: string,
-  existing?: Customer
+  existing?: Customer,
+  createdByUserId?: string
 ): Customer {
   const vendorCode =
     form.vendorStatus === "Approved" ? form.vendorCode.trim() : "";
@@ -147,51 +138,42 @@ function formToCustomer(
     estimatedAnnualPotential: existing?.estimatedAnnualPotential ?? "",
     notes: form.notes.trim(),
     customerProducts: form.customerProducts,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    createdByUserId:
+      existing?.createdByUserId ?? createdByUserId ?? "user-admin",
   };
 }
 
-interface CustomerSheetProps {
-  customer: Customer | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface CustomerFormProps {
+  customerId?: string;
 }
 
-export function CustomerSheet({
-  customer: customerProp,
-  open,
-  onOpenChange,
-}: CustomerSheetProps) {
+export function CustomerForm({ customerId }: CustomerFormProps) {
+  const router = useRouter();
+  const { currentUser } = useAuth();
   const {
     masterData,
     addCustomer,
     updateCustomer,
+    deleteCustomer,
     getCustomerById,
     getContactsByCustomerId,
     getDealsByCustomerId,
   } = useCrmData();
 
-  const customer = customerProp
-    ? getCustomerById(customerProp.id) ?? customerProp
-    : null;
-  const isAdd = !customerProp;
+  const customer = customerId ? getCustomerById(customerId) : null;
+  const isAdd = !customerId;
   const defaultOwner = masterData.accountOwners[0] ?? "";
-
-  const [activeTab, setActiveTab] = React.useState("details");
 
   const form = useForm<CustomerFormState>({
     defaultValues: emptyForm(defaultOwner),
   });
 
   React.useEffect(() => {
-    if (open) {
-      setActiveTab("details");
-      form.reset(
-        customer
-          ? customerToForm(customer)
-          : emptyForm(defaultOwner)
-      );
-    }
-  }, [open, customer, form, defaultOwner]);
+    form.reset(
+      customer ? customerToForm(customer) : emptyForm(defaultOwner)
+    );
+  }, [customer, form, defaultOwner]);
 
   const vendorStatus = form.watch("vendorStatus");
   const customerProducts = form.watch("customerProducts");
@@ -199,29 +181,37 @@ export function CustomerSheet({
   const registrationDocuments = form.watch("registrationDocuments");
   const vendorApproved = vendorStatus === "Approved";
 
-  const plantCount = plantLocations.filter((location) => location.trim()).length;
-  const documentCount = registrationDocuments.length;
-
   const onSubmit = (values: CustomerFormState) => {
     if (!isValidGstin(values.gstin)) {
       form.setError("gstin", {
         message: "Enter a valid 15-character GSTIN.",
       });
-      setActiveTab("details");
       return;
     }
 
     if (isAdd) {
-      addCustomer(formToCustomer(values, `cust-${Date.now()}`));
-    } else if (customer) {
-      updateCustomer(
-        customer.id,
-        formToCustomer(values, customer.id, customer)
+      const id = `cust-${Date.now()}`;
+      addCustomer(
+        formToCustomer(values, id, undefined, currentUser.id)
       );
+      router.push(recordListRoutes.customer);
+      return;
     }
 
-    onOpenChange(false);
+    if (!customer) return;
+    updateCustomer(customer.id, formToCustomer(values, customer.id, customer));
+    router.push(recordListRoutes.customer);
   };
+
+  const handleDelete = () => {
+    if (!customer) return;
+    const removed = deleteCustomer(customer.id);
+    if (removed) router.push(recordListRoutes.customer);
+  };
+
+  if (!isAdd && !customer) {
+    return null;
+  }
 
   const linkedContacts = customer
     ? getContactsByCustomerId(customer.id).length
@@ -229,66 +219,39 @@ export function CustomerSheet({
   const linkedDeals = customer ? getDealsByCustomerId(customer.id).length : 0;
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent
-        side="right"
-        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
-      >
-        <SheetHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
-          <SheetTitle className="font-display">
-            {isAdd ? "Add Customer" : customer?.name ?? "Customer"}
-          </SheetTitle>
-          <SheetDescription>
-            {isAdd
-              ? "Create a new customer record."
-              : "Update customer details and products."}
-          </SheetDescription>
-        </SheetHeader>
-
-        <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(onSubmit)}
-            className="flex min-h-0 flex-1 flex-col overflow-hidden"
-          >
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
-              <Tabs
-                value={activeTab}
-                onValueChange={setActiveTab}
-                className="w-full"
-              >
-                <TabsList className="grid h-auto w-full shrink-0 grid-cols-4">
-                  <TabsTrigger value="details">Details</TabsTrigger>
-                  <TabsTrigger value="plants">
-                    Plants
-                    {plantCount > 0 ? (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({plantCount})
-                      </span>
-                    ) : null}
-                  </TabsTrigger>
-                  <TabsTrigger value="documents">
-                    Docs
-                    {documentCount > 0 ? (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({documentCount})
-                      </span>
-                    ) : null}
-                  </TabsTrigger>
-                  <TabsTrigger value="products">
-                    Products
-                    {customerProducts.length > 0 ? (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        ({customerProducts.length})
-                      </span>
-                    ) : null}
-                  </TabsTrigger>
-                </TabsList>
-
-                <TabsContent
-                  value="details"
-                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
-                >
-                  <FormSection>
+    <RecordFormPage
+      backHref={recordListRoutes.customer}
+      backLabel="Customers"
+      title={isAdd ? "Add Customer" : "Edit Customer"}
+      description={
+        isAdd
+          ? "Create a new customer record in the master."
+          : "Update customer details, plants, documents, and products."
+      }
+      onSubmit={form.handleSubmit(onSubmit)}
+      footer={
+        <>
+          {!isAdd ? (
+            <Button type="button" variant="destructive" onClick={handleDelete}>
+              Delete
+            </Button>
+          ) : (
+            <span />
+          )}
+          <div className="flex gap-2">
+            <Button type="button" variant="outline" asChild>
+              <Link href={recordListRoutes.customer}>Cancel</Link>
+            </Button>
+            <Button type="submit">
+              {isAdd ? "Save Customer" : "Save Changes"}
+            </Button>
+          </div>
+        </>
+      }
+    >
+      <Form {...form}>
+        <div className="space-y-8">
+          <FormSection title="Details">
                   <FormField
                     control={form.control}
                     name="name"
@@ -555,7 +518,7 @@ export function CustomerSheet({
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes (optional)</FormLabel>
+                        <FormLabel optional>Notes</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={3}
@@ -568,8 +531,6 @@ export function CustomerSheet({
                     )}
                   />
 
-                  </FormSection>
-
                   {customer ? (
                     <p className="text-xs text-muted-foreground">
                       {linkedContacts} contact
@@ -577,57 +538,34 @@ export function CustomerSheet({
                       {linkedDeals === 1 ? "" : "s"}
                     </p>
                   ) : null}
-                </TabsContent>
+          </FormSection>
 
-                <TabsContent
-                  value="plants"
-                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
-                >
-                  <CustomerPlantLocationsEditor
-                    value={plantLocations}
-                    onChange={(next) => form.setValue("plantLocations", next)}
-                  />
-                </TabsContent>
+          <FormSection title="Plant locations">
+            <CustomerPlantLocationsEditor
+              value={plantLocations}
+              onChange={(next) => form.setValue("plantLocations", next)}
+            />
+          </FormSection>
 
-                <TabsContent
-                  value="documents"
-                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
-                >
-                  <CustomerDocumentsEditor
-                    value={registrationDocuments}
-                    onChange={(next) =>
-                      form.setValue("registrationDocuments", next)
-                    }
-                  />
-                </TabsContent>
+          <FormSection title="Registration documents">
+            <CustomerDocumentsEditor
+              value={registrationDocuments}
+              onChange={(next) =>
+                form.setValue("registrationDocuments", next)
+              }
+            />
+          </FormSection>
 
-                <TabsContent
-                  value="products"
-                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
-                >
-                  <CustomerProductDetailsEditor
-                    value={customerProducts}
-                    onChange={(next) =>
-                      form.setValue("customerProducts", next)
-                    }
-                  />
-                </TabsContent>
-              </Tabs>
-            </div>
-
-            <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-              <SheetClose asChild>
-                <Button type="button" variant="outline">
-                  Cancel
-                </Button>
-              </SheetClose>
-              <Button type="submit">
-                {isAdd ? "Save customer" : "Save changes"}
-              </Button>
-            </SheetFooter>
-          </form>
-        </Form>
-      </SheetContent>
-    </Sheet>
+          <FormSection title="Customer products">
+            <CustomerProductDetailsEditor
+              value={customerProducts}
+              onChange={(next) =>
+                form.setValue("customerProducts", next)
+              }
+            />
+          </FormSection>
+        </div>
+      </Form>
+    </RecordFormPage>
   );
 }

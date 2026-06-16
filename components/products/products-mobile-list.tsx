@@ -7,16 +7,20 @@ import {
   useExpandableCards,
 } from "@/components/shared/expandable-mobile-card";
 import { ProductExpandedDetails } from "./product-expanded-details";
-import type { Product } from "@/lib/types";
+import type { CrmUser, Product } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 interface ProductsMobileListProps {
   products: Product[];
+  users: CrmUser[];
   onOpen: (product: Product) => void;
   onDelete: (product: Product) => void;
 }
 
 export function ProductsMobileList({
   products,
+  users,
   onOpen,
   onDelete,
 }: ProductsMobileListProps) {
@@ -49,7 +53,9 @@ export function ProductsMobileList({
                 </p>
               </div>
               <p className="text-xs text-muted-foreground">
-                {product.voltage} V · {product.wattage} W
+                {product.voltage} V · {product.wattage} W · Added on{" "}
+                {formatDate(product.createdAt)} · Added by{" "}
+                {getUserName(users, product.createdByUserId)}
               </p>
             </div>
           }

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ActivitySheet } from "@/components/pipeline/activity-sheet";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllActivitiesSorted } from "@/lib/deal-helpers";
@@ -33,10 +33,7 @@ const ACTIVITY_PREVIEW_LIMIT = 5;
 export function MyActivitiesCard() {
   const { currentUser, users } = useAuth();
   const { dealActivities, deals } = useCrmData();
-  const [selectedActivityId, setSelectedActivityId] = React.useState<
-    string | null
-  >(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToActivity } = useRecordNavigation();
 
   const activities = React.useMemo(() => {
     const visible = filterActivitiesForUser(dealActivities, deals, currentUser, users);
@@ -44,8 +41,7 @@ export function MyActivitiesCard() {
   }, [dealActivities, deals, currentUser, users]);
 
   const openActivity = (activityId: string) => {
-    setSelectedActivityId(activityId);
-    setSheetOpen(true);
+    goToActivity(activityId);
   };
 
   return (
@@ -92,12 +88,6 @@ export function MyActivitiesCard() {
           </Button>
         </CardContent>
       </Card>
-
-      <ActivitySheet
-        activityId={selectedActivityId}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-      />
     </>
   );
 }

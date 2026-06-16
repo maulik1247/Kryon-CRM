@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
+  Activity,
   Building2,
   Factory,
   FileText,
@@ -7,7 +8,6 @@ import {
   LayoutDashboard,
   ListTodo,
   Package,
-  ScrollText,
   Shield,
   Users,
 } from "lucide-react";
@@ -54,7 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
         mobileTab: true,
       },
       { href: "/tasks", label: "Tasks", icon: ListTodo },
-      { href: "/activity-log", label: "Activity", icon: ScrollText },
+      { href: "/activity-log", label: "Activity", icon: Activity },
       {
         href: "/document-exchange",
         label: "Documents",

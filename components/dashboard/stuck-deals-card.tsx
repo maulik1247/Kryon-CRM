@@ -11,19 +11,17 @@ import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getStuckDeals } from "@/lib/deal-helpers";
 import { formatCurrency } from "@/lib/utils";
-import { DealSheet } from "@/components/deals/deal-sheet";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import type { Deal } from "@/lib/types";
 import { AlertTriangle } from "lucide-react";
 
 export function StuckDealsCard() {
   const { deals, pipelineStages, getCustomerById } = useCrmData();
   const stuckDeals = getStuckDeals(deals, pipelineStages, 14);
-  const [selectedDeal, setSelectedDeal] = React.useState<Deal | null>(null);
-  const [sheetOpen, setSheetOpen] = React.useState(false);
+  const { goToDeal } = useRecordNavigation();
 
   const handleDealClick = (deal: Deal) => {
-    setSelectedDeal(deal);
-    setSheetOpen(true);
+    goToDeal(deal.id);
   };
 
   return (
@@ -85,12 +83,6 @@ export function StuckDealsCard() {
           )}
         </CardContent>
       </Card>
-
-      <DealSheet
-        deal={selectedDeal}
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-      />
     </>
   );
 }

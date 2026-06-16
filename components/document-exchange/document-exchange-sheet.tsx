@@ -131,6 +131,7 @@ export function DocumentExchangeSheet({
     deals,
     addDocumentExchange,
     updateDocumentExchange,
+    deleteDocumentExchange,
     getDocumentExchangeById,
     getDealsByCustomerId,
   } = useCrmData();
@@ -192,6 +193,12 @@ export function DocumentExchangeSheet({
     onOpenChange(false);
   };
 
+  const handleDelete = () => {
+    if (!record) return;
+    deleteDocumentExchange(record.id);
+    onOpenChange(false);
+  };
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -240,7 +247,7 @@ export function DocumentExchangeSheet({
               />
             </FormField>
 
-            <FormField label="Deal" htmlFor="docx-deal">
+            <FormField label="Deal" htmlFor="docx-deal" optional>
               <FormSelect
                 id="docx-deal"
                 value={form.dealId || "__none__"}
@@ -314,6 +321,7 @@ export function DocumentExchangeSheet({
               value={form.files}
               onChange={(files) => update("files", files)}
               description="PDF, DOC, JPG — multiple files allowed."
+              optional
             />
               </TabsContent>
 
@@ -366,15 +374,28 @@ export function DocumentExchangeSheet({
             </Tabs>
           </div>
 
-          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-            <SheetClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
+            {!isAdd ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+              >
+                Delete
               </Button>
-            </SheetClose>
-            <Button type="submit" disabled={!form.customerId}>
-              {isAdd ? "Save Document" : "Save Changes"}
-            </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <SheetClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </SheetClose>
+              <Button type="submit" disabled={!form.customerId}>
+                {isAdd ? "Save Document" : "Save Changes"}
+              </Button>
+            </div>
           </SheetFooter>
         </form>
       </SheetContent>

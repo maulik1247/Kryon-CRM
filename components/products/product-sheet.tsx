@@ -23,6 +23,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
   isValidHsnCode,
@@ -82,7 +83,12 @@ function productToForm(product: Product): ProductFormState {
   };
 }
 
-function formToProduct(form: ProductFormState, id: string): Product {
+function formToProduct(
+  form: ProductFormState,
+  id: string,
+  existing?: Product,
+  createdByUserId?: string
+): Product {
   return {
     id,
     sku: form.sku.trim(),
@@ -96,6 +102,9 @@ function formToProduct(form: ProductFormState, id: string): Product {
     sellingPrice: Number(form.sellingPrice),
     description: form.description.trim() || undefined,
     specSheet: form.specSheet,
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    createdByUserId:
+      existing?.createdByUserId ?? createdByUserId ?? "user-admin",
   };
 }
 
@@ -110,7 +119,8 @@ export function ProductSheet({
   open,
   onOpenChange,
 }: ProductSheetProps) {
-  const { addProduct, updateProduct, getProductById } = useCrmData();
+  const { currentUser } = useAuth();
+  const { addProduct, updateProduct, deleteProduct, getProductById } = useCrmData();
 
   const product = productProp
     ? getProductById(productProp.id) ?? productProp
@@ -144,15 +154,28 @@ export function ProductSheet({
     }
 
     if (isAdd) {
-      addProduct(formToProduct({ ...form, hsnCode: hsn }, `prod-${Date.now()}`));
+      addProduct(
+        formToProduct(
+          { ...form, hsnCode: hsn },
+          `prod-${Date.now()}`,
+          undefined,
+          currentUser.id
+        )
+      );
     } else if (product) {
       updateProduct(
         product.id,
-        formToProduct({ ...form, hsnCode: hsn }, product.id)
+        formToProduct({ ...form, hsnCode: hsn }, product.id, product)
       );
     }
 
     onOpenChange(false);
+  };
+
+  const handleDelete = () => {
+    if (!product) return;
+    const removed = deleteProduct(product.id);
+    if (removed) onOpenChange(false);
   };
 
   return (
@@ -318,6 +341,7 @@ export function ProductSheet({
               <DocumentFilesEditor
                 inputId="specSheet"
                 label="Spec Sheet / Drawing"
+                optional
                 value={
                   form.specSheet
                     ? [
@@ -338,7 +362,7 @@ export function ProductSheet({
                 }
                 multiple={false}
                 accept=".pdf"
-                helperText="PDF only — optional"
+                helperText="PDF only"
                 emptyMessage="No spec sheet uploaded."
               />
             </FormSection>
@@ -346,15 +370,28 @@ export function ProductSheet({
             </Tabs>
           </div>
 
-          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-            <SheetClose asChild>
-              <Button type="button" variant="outline">
-                Cancel
+          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
+            {!isAdd ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+              >
+                Delete
               </Button>
-            </SheetClose>
-            <Button type="submit">
-              {isAdd ? "Save Product" : "Save Changes"}
-            </Button>
+            ) : (
+              <span />
+            )}
+            <div className="flex gap-2">
+              <SheetClose asChild>
+                <Button type="button" variant="outline">
+                  Cancel
+                </Button>
+              </SheetClose>
+              <Button type="submit">
+                {isAdd ? "Save Product" : "Save Changes"}
+              </Button>
+            </div>
           </SheetFooter>
         </form>
       </SheetContent>

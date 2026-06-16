@@ -1,4 +1,5 @@
 import { endOfWeek, parseISO, startOfDay } from "date-fns";
+import { sortByCreatedAtDesc } from "./list-helpers";
 import { isTaskOpen } from "./task-constants";
 import type {
   ConfidenceLevel,
@@ -124,11 +125,7 @@ export function getActivitiesByDealId(
 }
 
 export function getAllActivitiesSorted(activities: DealActivity[]) {
-  return [...activities].sort(
-    (a, b) =>
-      new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime() ||
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  return sortByCreatedAtDesc(activities);
 }
 
 function compareTasksByStatusAndDueDate(a: DealTask, b: DealTask) {
@@ -147,7 +144,7 @@ export function getTasksByDealId(tasks: DealTask[], dealId: string) {
 }
 
 export function getAllTasksSorted(tasks: DealTask[]) {
-  return [...tasks].sort(compareTasksByStatusAndDueDate);
+  return sortByCreatedAtDesc(tasks);
 }
 
 export function getNextOpenTaskForDeal(tasks: DealTask[], dealId: string) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Label } from "@/components/ui/label";
+import { FieldLabel } from "@/components/shared/field-label";
 import {
   Select,
   SelectContent,
@@ -19,6 +19,7 @@ interface UserAssigneeSelectProps {
   id?: string;
   disabled?: boolean;
   adminOnly?: boolean;
+  optional?: boolean;
 }
 
 export function UserAssigneeSelect({
@@ -28,6 +29,7 @@ export function UserAssigneeSelect({
   id = "assignee",
   disabled = false,
   adminOnly = false,
+  optional = false,
 }: UserAssigneeSelectProps) {
   const { users, currentUser } = useAuth();
   const canAssign = canAssignDeals(currentUser.role);
@@ -36,7 +38,9 @@ export function UserAssigneeSelect({
   if (adminOnly && !canAssign) {
     return (
       <div className="space-y-2">
-        <Label htmlFor={id}>{label}</Label>
+        <FieldLabel htmlFor={id} optional={optional}>
+          {label}
+        </FieldLabel>
         <p className="rounded-md border bg-muted/30 px-3 py-2 text-sm">
           {currentUser.name}
         </p>
@@ -46,7 +50,9 @@ export function UserAssigneeSelect({
 
   return (
     <div className="space-y-2">
-      <Label htmlFor={id}>{label}</Label>
+      <FieldLabel htmlFor={id} optional={optional}>
+        {label}
+      </FieldLabel>
       <Select
         value={value}
         onValueChange={onValueChange}

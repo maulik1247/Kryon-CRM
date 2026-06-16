@@ -1,8 +1,9 @@
 import { DetailGrid } from "@/components/shared/detail-grid";
 import { getActivityTypeLabel } from "@/lib/activity-constants";
 import { getConfidenceLabel } from "@/lib/confidence-constants";
-import { formatActivityDateTime, isMeetingLogActivity } from "@/lib/meeting-log-constants";
+import { formatActivityDateTime, isMeetingLogActivity, showsVisitFormatFields } from "@/lib/meeting-log-constants";
 import type { DealActivity } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
 
 interface ActivityExpandedDetailsProps {
   activity: DealActivity;
@@ -32,8 +33,12 @@ export function ActivityExpandedDetails({
           value: formatActivityDateTime(activity.occurredAt),
         },
         { label: "Type", value: getActivityTypeLabel(activity.type) },
-        { label: "Visit type", value: activity.visitType },
-        { label: "Purpose", value: activity.purpose },
+        ...(showsVisitFormatFields(activity.type)
+          ? [
+              { label: "Visit type", value: activity.visitType },
+              { label: "Purpose", value: activity.purpose },
+            ]
+          : []),
         { label: "Customer", value: customerName },
         { label: "Deal", value: activity.dealId, mono: true },
         { label: "Our attendees", value: ourAttendeeNames },
@@ -81,7 +86,8 @@ export function ActivityExpandedDetails({
           label: "Next follow-up",
           value: activity.nextFollowUpDate,
         },
-        { label: "Recorded by", value: recordedBy },
+        { label: "Added on", value: formatDate(activity.createdAt) },
+        { label: "Added by", value: recordedBy },
       ]
     : [
         { label: "Date", value: formatActivityDateTime(activity.occurredAt) },
@@ -91,7 +97,8 @@ export function ActivityExpandedDetails({
         { label: "Contact", value: contactName },
         { label: "Summary", value: activity.summary, className: "col-span-2" },
         { label: "Outcome", value: activity.outcome, className: "col-span-2" },
-        { label: "Recorded by", value: recordedBy },
+        { label: "Added on", value: formatDate(activity.createdAt) },
+        { label: "Added by", value: recordedBy },
         { label: "Assigned to", value: assignedTo },
       ];
 

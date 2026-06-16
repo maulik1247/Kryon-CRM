@@ -4,11 +4,13 @@ import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 interface OpenFromUrlProps {
-  onOpen: (id: string) => void;
+  /** Canonical record URL for a legacy `?open=` id. */
+  getHref: (id: string) => string;
   canOpen?: (id: string) => boolean;
 }
 
-export function OpenFromUrl({ onOpen, canOpen }: OpenFromUrlProps) {
+/** Redirects legacy `?open=<id>` links to full record pages. */
+export function OpenFromUrl({ getHref, canOpen }: OpenFromUrlProps) {
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -20,15 +22,15 @@ export function OpenFromUrl({ onOpen, canOpen }: OpenFromUrlProps) {
     if (canOpen && !canOpen(openId)) return;
 
     handledRef.current = openId;
-    onOpen(openId);
+    router.replace(getHref(openId));
 
     const params = new URLSearchParams(searchParams.toString());
     params.delete("open");
     const nextQuery = params.toString();
-    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
-      scroll: false,
-    });
-  }, [openId, onOpen, canOpen, pathname, router, searchParams]);
+    if (nextQuery) {
+      router.replace(`${pathname}?${nextQuery}`, { scroll: false });
+    }
+  }, [openId, getHref, canOpen, pathname, router, searchParams]);
 
   return null;
 }

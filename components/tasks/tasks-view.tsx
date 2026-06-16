@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { ListTodo } from "lucide-react";
+import Link from "next/link";
+import { ListTodo, Plus } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -11,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -25,19 +27,18 @@ import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
+import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { InfoLabel } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
-import { DealSheet } from "@/components/deals/deal-sheet";
-import { TaskSheet } from "@/components/tasks/task-sheet";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
-import { AddTaskSheet } from "@/components/tasks/add-task-sheet";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getAllTasksSorted } from "@/lib/deal-helpers";
 import { isTaskOpen, TASK_STATUS_OPTIONS } from "@/lib/task-constants";
-import { filterTasksForUser, canUserAccessTask, canUserAccessDeal, getUserName } from "@/lib/user-helpers";
-import type { Deal, TaskStatus } from "@/lib/types";
+import { filterTasksForUser, canUserAccessTask, getUserName } from "@/lib/user-helpers";
+import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
+import type { TaskStatus } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 type TaskFilter = "open" | "completed" | "all";
@@ -51,16 +52,10 @@ export function TasksView() {
     updateDealTaskStatus,
     deleteDealTask,
     getCustomerById,
-    getDealById,
   } = useCrmData();
+  const { goToTask, goToDeal } = useRecordNavigation();
 
   const [filter, setFilter] = React.useState<TaskFilter>("open");
-  const [selectedTaskId, setSelectedTaskId] = React.useState<string | null>(
-    null
-  );
-  const [taskSheetOpen, setTaskSheetOpen] = React.useState(false);
-  const [selectedDeal, setSelectedDeal] = React.useState<Deal | null>(null);
-  const [dealSheetOpen, setDealSheetOpen] = React.useState(false);
 
   const tasks = React.useMemo(() => {
     const visible = filterTasksForUser(dealTasks, currentUser, users, deals);
@@ -82,18 +77,8 @@ export function TasksView() {
     setPage,
   } = usePagination(tasks, 10, filter);
 
-  const openTask = (taskId: string) => {
-    setSelectedTaskId(taskId);
-    setTaskSheetOpen(true);
-  };
-
-  const openTaskFromUrl = React.useCallback((id: string) => openTask(id), []);
-
   const openDeal = (dealId: string) => {
-    const deal = getDealById(dealId);
-    if (!deal || !canUserAccessDeal(deal, currentUser, users)) return;
-    setSelectedDeal(deal);
-    setDealSheetOpen(true);
+    goToDeal(dealId);
   };
 
   const today = new Date();
@@ -103,7 +88,7 @@ export function TasksView() {
     <>
       <React.Suspense fallback={null}>
         <OpenFromUrl
-          onOpen={openTaskFromUrl}
+          getHref={recordRoutes.task}
           canOpen={(id) => {
             const task = dealTasks.find((entry) => entry.id === id);
             return task
@@ -137,7 +122,14 @@ export function TasksView() {
             </SelectContent>
           </Select>
         }
-        actions={<AddTaskSheet />}
+        actions={
+          <Button asChild>
+            <Link href={recordNewRoutes.task}>
+              <Plus className="h-4 w-4" />
+              Add Task
+            </Link>
+          </Button>
+        }
       />
 
       {tasks.length === 0 ? (
@@ -146,7 +138,14 @@ export function TasksView() {
             icon={ListTodo}
             title="No tasks yet"
             description="Create a task to plan the next step on a deal."
-            action={<AddTaskSheet />}
+            action={
+              <Button asChild>
+                <Link href={recordNewRoutes.task}>
+                  <Plus className="h-4 w-4" />
+                  Add Task
+                </Link>
+              </Button>
+            }
           />
         </div>
       ) : (
@@ -164,10 +163,11 @@ export function TasksView() {
               dueDate.setHours(0, 0, 0, 0);
               return isTaskOpen(task.status) && dueDate < today;
             }}
-            onOpenTask={openTask}
+            onOpenTask={goToTask}
             onOpenDeal={openDeal}
             onStatusChange={updateDealTaskStatus}
             onDelete={(task) => deleteDealTask(task.id)}
+            openOnTap
           />
           {totalItems > 0 ? (
             <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
@@ -189,6 +189,7 @@ export function TasksView() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Task</TableHead>
                 <TableHead>
                   <InfoLabel info={HELP.taskStatus}>Status</InfoLabel>
@@ -198,20 +199,28 @@ export function TasksView() {
                 </TableHead>
                 <TableHead>Customer</TableHead>
                 <TableHead>Deal</TableHead>
-                <TableHead>Added by</TableHead>
                 <TableHead>Assigned to</TableHead>
+                <TableHead>Added on</TableHead>
+                <TableHead>Added by</TableHead>
                 <TableHead className="w-[88px] text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {tasks.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="p-0">
+                  <TableCell colSpan={9} className="p-0">
                     <EmptyState
                       icon={ListTodo}
                       title="No tasks yet"
                       description="Create a task to plan the next step on a deal."
-                      action={<AddTaskSheet />}
+                      action={
+              <Button asChild>
+                <Link href={recordNewRoutes.task}>
+                  <Plus className="h-4 w-4" />
+                  Add Task
+                </Link>
+              </Button>
+            }
                       className="m-4 border-none bg-transparent shadow-none"
                     />
                   </TableCell>
@@ -233,8 +242,11 @@ export function TasksView() {
                     <TableRow
                       key={task.id}
                       className="cursor-pointer"
-                      onClick={() => openTask(task.id)}
+                      onClick={() => goToTask(task.id)}
                     >
+                      <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
+                        {task.id}
+                      </TableCell>
                       <TableCell
                         className={cn(
                           "max-w-[240px] truncate font-medium",
@@ -293,16 +305,19 @@ export function TasksView() {
                         {task.dealId}
                       </TableCell>
                       <TableCell className="max-w-[140px] truncate">
-                        {getUserName(users, task.createdByUserId)}
+                        {getUserName(users, task.assignedToUserId)}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap">
+                        {formatDate(task.createdAt)}
                       </TableCell>
                       <TableCell className="max-w-[140px] truncate">
-                        {getUserName(users, task.assignedToUserId)}
+                        {getUserName(users, task.createdByUserId)}
                       </TableCell>
                       <TableCell
                         onClick={(event) => event.stopPropagation()}
                       >
                         <TableActions
-                          onEdit={() => openTask(task.id)}
+                          onEdit={() => goToTask(task.id)}
                           onDelete={() => deleteDealTask(task.id)}
                         />
                       </TableCell>
@@ -324,19 +339,6 @@ export function TasksView() {
           />
         ) : null}
       </Card>
-
-      <TaskSheet
-        taskId={selectedTaskId}
-        open={taskSheetOpen}
-        onOpenChange={setTaskSheetOpen}
-        onViewDeal={openDeal}
-      />
-
-      <DealSheet
-        deal={selectedDeal}
-        open={dealSheetOpen}
-        onOpenChange={setDealSheetOpen}
-      />
     </>
   );
 }

@@ -7,16 +7,20 @@ import {
   useExpandableCards,
 } from "@/components/shared/expandable-mobile-card";
 import { SupplierExpandedDetails } from "./supplier-expanded-details";
-import type { Supplier } from "@/lib/types";
+import type { CrmUser, Supplier } from "@/lib/types";
+import { formatDate } from "@/lib/utils";
+import { getUserName } from "@/lib/user-helpers";
 
 interface SuppliersMobileListProps {
   suppliers: Supplier[];
+  users: CrmUser[];
   onOpen: (supplier: Supplier) => void;
   onDelete: (supplier: Supplier) => void;
 }
 
 export function SuppliersMobileList({
   suppliers,
+  users,
   onOpen,
   onDelete,
 }: SuppliersMobileListProps) {
@@ -42,7 +46,10 @@ export function SuppliersMobileList({
                   </p>
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground">{supplier.region}</p>
+              <p className="text-xs text-muted-foreground">
+                {supplier.region} · Added on {formatDate(supplier.createdAt)} ·
+                Added by {getUserName(users, supplier.createdByUserId)}
+              </p>
             </div>
           }
           details={<SupplierExpandedDetails supplier={supplier} />}

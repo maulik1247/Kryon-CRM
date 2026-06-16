@@ -27,7 +27,7 @@ export function LogActivitySheet({ defaultDealId }: LogActivitySheetProps) {
       <SheetTrigger asChild>
         <Button className="gap-2 shadow-sm">
           <Plus className="h-4 w-4" />
-          Log Visit / Meeting
+          Log Activity
         </Button>
       </SheetTrigger>
       <SheetContent
@@ -35,9 +35,10 @@ export function LogActivitySheet({ defaultDealId }: LogActivitySheetProps) {
         className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
       >
         <SheetHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
-          <SheetTitle className="font-display">Visit / Meeting Log</SheetTitle>
+          <SheetTitle className="font-display">Activity log</SheetTitle>
           <SheetDescription>
-            Record visit or meeting details, attendees, and follow-up actions.
+            Record visits, meetings, calls, emails, and notes with follow-up
+            details.
           </SheetDescription>
         </SheetHeader>
 
