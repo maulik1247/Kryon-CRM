@@ -8,6 +8,7 @@ interface FormFieldProps {
   children: React.ReactNode;
   className?: string;
   info?: string;
+  optional?: boolean;
 }
 
 export function FormField({
@@ -16,11 +17,17 @@ export function FormField({
   children,
   className,
   info,
+  optional,
 }: FormFieldProps) {
   return (
     <div className={cn("space-y-1.5", className)}>
       <div className="flex items-center gap-1">
         <Label htmlFor={htmlFor}>{label}</Label>
+        {optional ? (
+          <span className="text-xs font-normal text-muted-foreground">
+            (optional)
+          </span>
+        ) : null}
         {info ? <InfoTip content={info} label={`About ${label}`} /> : null}
       </div>
       {children}

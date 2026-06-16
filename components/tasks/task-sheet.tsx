@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/sheet";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
+import { FormSection } from "@/components/shared/form-section";
 import { FormSelect } from "@/components/shared/form-select";
 import { UserAssigneeSelect } from "@/components/shared/user-assignee-select";
 import { canAssignDeals } from "@/lib/role-permissions";
@@ -150,7 +151,8 @@ export function TaskSheet({
             onSubmit={handleSubmit}
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
           >
-            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+              <FormSection>
               <FormField label="What to do" htmlFor="task-title">
                 <Input
                   id="task-title"
@@ -183,34 +185,37 @@ export function TaskSheet({
               </FormField>
 
               <FormField label="Deal" htmlFor="task-deal">
-                <FormSelect
-                  id="task-deal"
-                  value={form.dealId}
-                  onValueChange={(value) => update("dealId", value)}
-                  disabled={visibleDeals.length === 0}
-                  placeholder="Select deal"
-                  options={visibleDeals.map((entry) => {
-                    const dealCustomer = getCustomerById(entry.customerId);
-                    return {
-                      value: entry.id,
-                      label: `${dealCustomer?.name ?? "Unknown"} · ${entry.id}`,
-                    };
-                  })}
-                />
+                <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1">
+                    <FormSelect
+                      id="task-deal"
+                      value={form.dealId}
+                      onValueChange={(value) => update("dealId", value)}
+                      disabled={visibleDeals.length === 0}
+                      placeholder="Select deal"
+                      options={visibleDeals.map((entry) => {
+                        const dealCustomer = getCustomerById(entry.customerId);
+                        return {
+                          value: entry.id,
+                          label: `${dealCustomer?.name ?? "Unknown"} · ${entry.id}`,
+                        };
+                      })}
+                    />
+                  </div>
+                  {onViewDeal && form.dealId ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      className="shrink-0"
+                      onClick={() => onViewDeal(form.dealId)}
+                      aria-label="View linked deal"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                    </Button>
+                  ) : null}
+                </div>
               </FormField>
-
-              {onViewDeal && form.dealId ? (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  className="gap-2"
-                  onClick={() => onViewDeal(form.dealId)}
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  View linked deal
-                </Button>
-              ) : null}
 
               <FormField label="Added by" htmlFor="task-created-by">
                 <p
@@ -228,6 +233,7 @@ export function TaskSheet({
                 onValueChange={(value) => update("assignedToUserId", value)}
                 adminOnly
               />
+              </FormSection>
             </div>
 
             <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">

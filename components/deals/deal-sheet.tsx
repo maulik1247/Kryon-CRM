@@ -17,6 +17,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField as SharedFormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
 import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
+import {
   Form,
   FormControl,
   FormField,
@@ -283,8 +289,17 @@ export function DealSheet({ deal: dealProp, open, onOpenChange }: DealSheetProps
               onSubmit={form.handleSubmit(onSubmit)}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-                <FormSection title="Customer">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+                <Tabs defaultValue="overview" className="w-full">
+                  <TabsList className="grid h-auto w-full grid-cols-3">
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="commercial">Commercial</TabsTrigger>
+                    <TabsTrigger value="followup">Follow-up</TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="overview" className="mt-4 space-y-4">
+                        <>
+                          <FormSection>
                   <FormField
                     control={form.control}
                     name="customerId"
@@ -343,9 +358,9 @@ export function DealSheet({ deal: dealProp, open, onOpenChange }: DealSheetProps
                       className="bg-muted/30"
                     />
                   </SharedFormField>
-                </FormSection>
+                          </FormSection>
 
-                <FormSection title="Product selection">
+                          <FormSection>
                   <div className="space-y-4">
                     <FormField
                       control={form.control}
@@ -443,9 +458,77 @@ export function DealSheet({ deal: dealProp, open, onOpenChange }: DealSheetProps
                       </span>
                     </div>
                   ) : null}
-                </FormSection>
+                          </FormSection>
 
-                <FormSection title="Pricing">
+                          <FormSection>
+                            <FormField
+                              control={form.control}
+                              name="confidence"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Confidence level</FormLabel>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select confidence" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {CONFIDENCE_FORM_OPTIONS.map((option) => (
+                                        <SelectItem
+                                          key={option.value}
+                                          value={option.value}
+                                        >
+                                          {option.label}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            <FormField
+                              control={form.control}
+                              name="stage"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Current stage</FormLabel>
+                                  <Select
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                  >
+                                    <FormControl>
+                                      <SelectTrigger>
+                                        <SelectValue placeholder="Select stage" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      {pipelineStages.map((stage) => (
+                                        <SelectItem key={stage.id} value={stage.id}>
+                                          {stage.name}
+                                        </SelectItem>
+                                      ))}
+                                    </SelectContent>
+                                  </Select>
+                                  <p className="text-xs text-muted-foreground">
+                                    {daysInStage} days in current stage
+                                    {watched.stage !== deal.stage &&
+                                      " · will update on save"}
+                                  </p>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </FormSection>
+                        </>
+                  </TabsContent>
+
+                  <TabsContent value="commercial" className="mt-4 space-y-4">
+                        <FormSection>
                   <FormField
                     control={form.control}
                     name="currentSupplierName"
@@ -507,73 +590,11 @@ export function DealSheet({ deal: dealProp, open, onOpenChange }: DealSheetProps
                     />
                   </SharedFormField>
                   </div>
-                </FormSection>
+                        </FormSection>
+                  </TabsContent>
 
-                <FormSection title="Pipeline">
-                  <FormField
-                    control={form.control}
-                    name="confidence"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Confidence level</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select confidence" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {CONFIDENCE_FORM_OPTIONS.map((option) => (
-                              <SelectItem
-                                key={option.value}
-                                value={option.value}
-                              >
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="stage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Current stage</FormLabel>
-                        <Select
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select stage" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {pipelineStages.map((stage) => (
-                              <SelectItem key={stage.id} value={stage.id}>
-                                {stage.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <p className="text-xs text-muted-foreground">
-                          {daysInStage} days in current stage
-                          {watched.stage !== deal.stage && " · will update on save"}
-                        </p>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </FormSection>
-
-                <FormSection title="Log">
+                  <TabsContent value="followup" className="mt-4 space-y-4">
+                        <FormSection>
                   <FormField
                     control={form.control}
                     name="nextAction"
@@ -640,7 +661,9 @@ export function DealSheet({ deal: dealProp, open, onOpenChange }: DealSheetProps
                       </FormItem>
                     )}
                   />
-                </FormSection>
+                        </FormSection>
+                  </TabsContent>
+                </Tabs>
               </div>
 
               <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">

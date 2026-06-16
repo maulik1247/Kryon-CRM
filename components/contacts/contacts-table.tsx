@@ -19,6 +19,8 @@ import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { ContactSheet } from "./contact-sheet";
 import { ContactsMobileList } from "./contacts-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -32,6 +34,16 @@ export function ContactsTable() {
   const [deleteContactRecord, setDeleteContactRecord] =
     React.useState<Contact | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(contacts);
 
   const openSheet = (contact: Contact | null) => {
     setSheetContact(contact);
@@ -105,20 +117,34 @@ export function ContactsTable() {
             />
           </div>
         ) : (
-          <ContactsMobileList
-            contacts={contacts}
-            customerName={(customerId) =>
-              getCustomerById(customerId)?.name
-            }
-            onOpen={openSheet}
-            onDelete={(contact) => {
-              setDeleteError("");
-              setDeleteContactRecord(contact);
-            }}
-          />
+          <>
+            <ContactsMobileList
+              contacts={paginatedItems}
+              customerName={(customerId) =>
+                getCustomerById(customerId)?.name
+              }
+              onOpen={openSheet}
+              onDelete={(contact) => {
+                setDeleteError("");
+                setDeleteContactRecord(contact);
+              }}
+            />
+            {totalItems > 0 ? (
+              <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+                <TablePagination
+                  page={page}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  rangeStart={rangeStart}
+                  rangeEnd={rangeEnd}
+                  onPageChange={setPage}
+                />
+              </div>
+            ) : null}
+          </>
         )}
 
-        <Card className="hidden shadow-sm md:block">
+        <Card className="hidden overflow-hidden shadow-sm md:block">
           <MobileTableScroll>
           <Table>
             <TableHeader>
@@ -152,7 +178,7 @@ export function ContactsTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-              contacts.map((contact) => {
+              paginatedItems.map((contact) => {
                 const customer = getCustomerById(contact.customerId);
                 return (
                   <TableRow
@@ -201,6 +227,16 @@ export function ContactsTable() {
             </TableBody>
           </Table>
           </MobileTableScroll>
+          {totalItems > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
         {deleteError && (
           <p className="text-sm text-destructive">{deleteError}</p>

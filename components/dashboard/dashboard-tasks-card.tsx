@@ -15,6 +15,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { TaskSheet } from "@/components/tasks/task-sheet";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
 import { canViewAllDeals } from "@/lib/role-permissions";
@@ -24,8 +26,6 @@ import { getAllTasksSorted } from "@/lib/deal-helpers";
 import { getTaskStatusLabel, isTaskOpen } from "@/lib/task-constants";
 import { filterTasksForUser, getUserName } from "@/lib/user-helpers";
 import { cn, formatDate } from "@/lib/utils";
-
-const TASK_PREVIEW_LIMIT = 8;
 
 export function DashboardTasksCard() {
   const { currentUser, users } = useAuth();
@@ -41,7 +41,16 @@ export function DashboardTasksCard() {
     return getAllTasksSorted(visible).filter((task) => isTaskOpen(task.status));
   }, [dealTasks, currentUser, users, deals]);
 
-  const previewTasks = tasks.slice(0, TASK_PREVIEW_LIMIT);
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(tasks);
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
@@ -50,7 +59,7 @@ export function DashboardTasksCard() {
     setSheetOpen(true);
   };
 
-  const isOverdue = (task: (typeof previewTasks)[number]) => {
+  const isOverdue = (task: (typeof paginatedItems)[number]) => {
     const dueDate = new Date(`${task.dueDate}T00:00:00`);
     dueDate.setHours(0, 0, 0, 0);
     return dueDate < today;
@@ -58,7 +67,7 @@ export function DashboardTasksCard() {
 
   return (
     <>
-      <Card>
+      <Card className="overflow-hidden">
         <CardHeader className="flex flex-row items-center gap-2">
           <ListTodo className="h-4 w-4" />
           <CardTitle>{seesAllDeals ? "All Open Tasks" : "My Open Tasks"}</CardTitle>
@@ -67,14 +76,14 @@ export function DashboardTasksCard() {
           </Badge>
         </CardHeader>
         <CardContent className="space-y-4">
-          {previewTasks.length === 0 ? (
+          {paginatedItems.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No open tasks right now.
             </p>
           ) : (
             <>
               <TasksMobileList
-                tasks={previewTasks}
+                tasks={paginatedItems}
                 customerNameByDealId={(dealId) => {
                   const deal = deals.find((entry) => entry.id === dealId);
                   return deal ? getCustomerById(deal.customerId)?.name : undefined;
@@ -86,6 +95,18 @@ export function DashboardTasksCard() {
                 showActions={false}
                 showStatusSelect={false}
               />
+              {totalItems > 0 ? (
+                <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+                  <TablePagination
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    rangeStart={rangeStart}
+                    rangeEnd={rangeEnd}
+                    onPageChange={setPage}
+                  />
+                </div>
+              ) : null}
 
               <div className="hidden md:block">
                 <MobileTableScroll>
@@ -100,7 +121,7 @@ export function DashboardTasksCard() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {previewTasks.map((task) => {
+                      {paginatedItems.map((task) => {
                         const deal = deals.find(
                           (entry) => entry.id === task.dealId
                         );
@@ -147,15 +168,19 @@ export function DashboardTasksCard() {
                     </TableBody>
                   </Table>
                 </MobileTableScroll>
+                {totalItems > 0 ? (
+                  <TablePagination
+                    page={page}
+                    totalPages={totalPages}
+                    totalItems={totalItems}
+                    rangeStart={rangeStart}
+                    rangeEnd={rangeEnd}
+                    onPageChange={setPage}
+                  />
+                ) : null}
               </div>
             </>
           )}
-
-          {tasks.length > TASK_PREVIEW_LIMIT ? (
-            <p className="text-xs text-muted-foreground">
-              Showing {TASK_PREVIEW_LIMIT} of {tasks.length} open tasks.
-            </p>
-          ) : null}
 
           <Button asChild variant="outline" size="sm">
             <Link href="/tasks">View all tasks</Link>

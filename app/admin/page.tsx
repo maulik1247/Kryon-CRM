@@ -19,14 +19,14 @@ export default function AdminPage() {
       subtitle="Manage dropdown master data, users, and pipeline configuration"
     >
       <AdminGuard>
-        <Tabs defaultValue="master-data" className="space-y-4">
-          <TabsList className="h-auto w-full flex-wrap justify-start gap-1">
+        <Tabs defaultValue="master-data" className="w-full">
+          <TabsList className="grid h-auto w-full grid-cols-3">
             <TabsTrigger value="master-data">Master Data</TabsTrigger>
             <TabsTrigger value="users">Users & Access</TabsTrigger>
             <TabsTrigger value="pipeline">Pipeline Stages</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="master-data" className="space-y-4">
+          <TabsContent value="master-data" className="mt-4 space-y-4">
             <div className="grid gap-4 lg:grid-cols-2">
               <MasterDataListEditor
                 title="OEM Segments"
@@ -51,11 +51,11 @@ export default function AdminPage() {
             </div>
           </TabsContent>
 
-          <TabsContent value="users">
+          <TabsContent value="users" className="mt-4">
             <UsersAdminTable />
           </TabsContent>
 
-          <TabsContent value="pipeline">
+          <TabsContent value="pipeline" className="mt-4">
             <PipelineStagesAdmin />
           </TabsContent>
         </Tabs>

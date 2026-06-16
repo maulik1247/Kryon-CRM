@@ -10,10 +10,7 @@ import {
   isNavGroupActive,
   isNavItemActive,
 } from "@/lib/nav-items";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/lib/auth-provider";
-import { useCrmData } from "@/lib/crm-data-provider";
-import { getUnreadReminderCount } from "@/lib/reminder-helpers";
 import { cn } from "@/lib/utils";
 
 interface NavLinksProps {
@@ -41,13 +38,8 @@ function NavLinkItem({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
-  const { currentUser } = useAuth();
-  const { reminders } = useCrmData();
-  const unreadReminders = getUnreadReminderCount(reminders, currentUser.id);
   const isActive = isNavItemActive(item.href, pathname);
   const Icon = item.icon;
-  const showReminderBadge =
-    item.href === "/reminders" && unreadReminders > 0;
 
   return (
     <Link
@@ -64,16 +56,7 @@ function NavLinkItem({
       )}
     >
       <Icon className="h-5 w-5 shrink-0" />
-      {!collapsed && (
-        <>
-          <span className="flex-1">{item.label}</span>
-          {showReminderBadge && (
-            <Badge className="h-5 min-w-5 justify-center px-1.5 text-[10px]">
-              {unreadReminders}
-            </Badge>
-          )}
-        </>
-      )}
+      {!collapsed && <span className="flex-1">{item.label}</span>}
     </Link>
   );
 }

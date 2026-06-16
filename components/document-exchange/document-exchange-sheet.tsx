@@ -15,8 +15,14 @@ import {
 } from "@/components/ui/sheet";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
-import { CustomerDocumentsEditor } from "@/components/customers/customer-documents-editor";
+import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -205,7 +211,22 @@ export function DocumentExchangeSheet({
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            <Tabs defaultValue="record" className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-3">
+                <TabsTrigger value="record">Record</TabsTrigger>
+                <TabsTrigger value="files">
+                  Files
+                  {form.files.length > 0 ? (
+                    <span className="ml-1 text-xs text-muted-foreground">
+                      ({form.files.length})
+                    </span>
+                  ) : null}
+                </TabsTrigger>
+                <TabsTrigger value="signing">Signing</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="record" className="mt-4 space-y-4">
             <FormField label="Customer" htmlFor="docx-customer">
               <CustomerSearchSelect
                 id="docx-customer"
@@ -286,30 +307,17 @@ export function DocumentExchangeSheet({
                 }))}
               />
             </FormField>
+              </TabsContent>
 
-            <CustomerDocumentsEditor
+              <TabsContent value="files" className="mt-4 space-y-4">
+            <DocumentFilesEditor
               value={form.files}
               onChange={(files) => update("files", files)}
               description="PDF, DOC, JPG — multiple files allowed."
             />
+              </TabsContent>
 
-            <FormField label="Validity / expiry date" htmlFor="docx-expiry">
-              <DatePicker
-                value={form.validityExpiryDate}
-                onChange={(value) => update("validityExpiryDate", value)}
-                placeholder="Optional"
-              />
-            </FormField>
-
-            <FormField label="Version number" htmlFor="docx-version">
-              <Input
-                id="docx-version"
-                value={form.versionNumber}
-                onChange={(e) => update("versionNumber", e.target.value)}
-                placeholder="e.g. 1.0"
-              />
-            </FormField>
-
+              <TabsContent value="signing" className="mt-4 space-y-4">
             <FormField label="Signed copy uploaded" htmlFor="docx-signed">
               <FormSelect
                 id="docx-signed"
@@ -323,12 +331,29 @@ export function DocumentExchangeSheet({
                 }))}
               />
               <p className="mt-1.5 text-xs text-muted-foreground">
-                E-sign via DocuSign / Zoho Sign, or upload the signed copy
-                manually above.
+                E-sign via DocuSign / Zoho Sign, or upload the signed copy in
+                the Files tab.
               </p>
             </FormField>
 
-            <FormField label="Remarks" htmlFor="docx-remarks">
+            <FormField label="Validity / expiry date" htmlFor="docx-expiry" optional>
+              <DatePicker
+                value={form.validityExpiryDate}
+                onChange={(value) => update("validityExpiryDate", value)}
+                placeholder="Optional"
+              />
+            </FormField>
+
+            <FormField label="Version number" htmlFor="docx-version" optional>
+              <Input
+                id="docx-version"
+                value={form.versionNumber}
+                onChange={(e) => update("versionNumber", e.target.value)}
+                placeholder="e.g. 1.0"
+              />
+            </FormField>
+
+            <FormField label="Remarks" htmlFor="docx-remarks" optional>
               <Textarea
                 id="docx-remarks"
                 rows={3}
@@ -337,6 +362,8 @@ export function DocumentExchangeSheet({
                 placeholder="Notes on signing, legal review, etc."
               />
             </FormField>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">

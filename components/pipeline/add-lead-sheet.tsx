@@ -4,19 +4,25 @@ import * as React from "react";
 import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { InfoTip } from "@/components/shared/info-tip";
 import { FormSelect } from "@/components/shared/form-select";
 import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
@@ -66,7 +72,7 @@ function createDealId(existingDeals: Deal[]): string {
   return `DEAL-${year}-${String(maxNum + 1).padStart(3, "0")}`;
 }
 
-export function AddLeadDialog() {
+export function AddLeadSheet() {
   const { currentUser, users } = useAuth();
   const {
     customers,
@@ -255,27 +261,38 @@ export function AddLeadDialog() {
     quotedPrice > 0;
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
         <Button className="gap-2 shadow-sm">
           <Plus className="h-4 w-4" />
           Create Deal
         </Button>
-      </DialogTrigger>
-      <DialogContent className="flex max-h-[90vh] max-w-2xl flex-col gap-0 overflow-hidden p-0 sm:overflow-hidden sm:rounded-xl">
-        <DialogHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
-          <DialogTitle className="font-display">Create a Deal</DialogTitle>
-          <DialogDescription>
+      </SheetTrigger>
+      <SheetContent
+        side="right"
+        className="flex w-full flex-col gap-0 overflow-hidden p-0 sm:max-w-xl"
+      >
+        <SheetHeader className="shrink-0 space-y-1 border-b px-6 py-4 text-left">
+          <SheetTitle className="font-display">Create a Deal</SheetTitle>
+          <SheetDescription>
             New opportunity linked to customer, product, and pipeline stage.
-          </DialogDescription>
-        </DialogHeader>
+          </SheetDescription>
+        </SheetHeader>
 
         <form
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-6 py-4">
-          <FormSection title="Customer">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            <Tabs defaultValue="overview" className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-3">
+                <TabsTrigger value="overview">Overview</TabsTrigger>
+                <TabsTrigger value="commercial">Commercial</TabsTrigger>
+                <TabsTrigger value="followup">Follow-up</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="overview" className="mt-4 space-y-4">
+          <FormSection>
             <div className="space-y-4">
               <FormField label="Customer name" htmlFor="deal-customer">
                 <CustomerSearchSelect
@@ -312,7 +329,7 @@ export function AddLeadDialog() {
             </FormField>
           </FormSection>
 
-          <FormSection title="Product selection">
+          <FormSection>
             <div className="space-y-4">
               <FormField label="Product category" htmlFor="deal-product-category">
                 <FormSelect
@@ -378,7 +395,41 @@ export function AddLeadDialog() {
             ) : null}
           </FormSection>
 
-          <FormSection title="Pricing">
+          <FormSection>
+            <div className="space-y-4">
+              <FormField
+                label="Confidence level"
+                htmlFor="deal-confidence"
+                info={HELP.confidence}
+              >
+                <FormSelect
+                  id="deal-confidence"
+                  value={form.confidence}
+                  onValueChange={(value) => update("confidence", value)}
+                  options={CONFIDENCE_FORM_OPTIONS}
+                />
+              </FormField>
+              <FormField
+                label="Current stage"
+                htmlFor="deal-stage"
+                info={HELP.startingStage}
+              >
+                <FormSelect
+                  id="deal-stage"
+                  value={form.stage}
+                  onValueChange={(value) => update("stage", value)}
+                  options={pipelineStages.map((stage) => ({
+                    value: stage.id,
+                    label: stage.name,
+                  }))}
+                />
+              </FormField>
+            </div>
+          </FormSection>
+              </TabsContent>
+
+              <TabsContent value="commercial" className="mt-4 space-y-4">
+          <FormSection>
             <FormField label="Current supplier" htmlFor="deal-current-supplier">
               <Input
                 id="deal-current-supplier"
@@ -424,40 +475,10 @@ export function AddLeadDialog() {
               </FormField>
             </div>
           </FormSection>
+              </TabsContent>
 
-          <FormSection title="Pipeline">
-            <div className="space-y-4">
-              <FormField
-                label="Confidence level"
-                htmlFor="deal-confidence"
-                info={HELP.confidence}
-              >
-                <FormSelect
-                  id="deal-confidence"
-                  value={form.confidence}
-                  onValueChange={(value) => update("confidence", value)}
-                  options={CONFIDENCE_FORM_OPTIONS}
-                />
-              </FormField>
-              <FormField
-                label="Current stage"
-                htmlFor="deal-stage"
-                info={HELP.startingStage}
-              >
-                <FormSelect
-                  id="deal-stage"
-                  value={form.stage}
-                  onValueChange={(value) => update("stage", value)}
-                  options={pipelineStages.map((stage) => ({
-                    value: stage.id,
-                    label: stage.name,
-                  }))}
-                />
-              </FormField>
-            </div>
-          </FormSection>
-
-          <FormSection title="Log">
+              <TabsContent value="followup" className="mt-4 space-y-4">
+          <FormSection>
             <div className="space-y-4">
               <FormField label="Next action" htmlFor="deal-next-action">
               <Textarea
@@ -501,10 +522,12 @@ export function AddLeadDialog() {
               </FormField>
             </div>
           </FormSection>
+              </TabsContent>
+            </Tabs>
           </div>
 
-          <DialogFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
-            <DialogClose asChild>
+          <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">
+            <SheetClose asChild>
               <Button
                 type="button"
                 variant="outline"
@@ -512,13 +535,13 @@ export function AddLeadDialog() {
               >
                 Cancel
               </Button>
-            </DialogClose>
+            </SheetClose>
             <Button type="submit" disabled={!canSubmit}>
               Create Deal
             </Button>
-          </DialogFooter>
+          </SheetFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   );
 }

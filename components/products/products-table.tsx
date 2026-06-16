@@ -19,6 +19,8 @@ import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { ProductSheet } from "./product-sheet";
 import { ProductsMobileList } from "./products-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -31,6 +33,16 @@ export function ProductsTable() {
   const [deleteProductRecord, setDeleteProductRecord] =
     React.useState<Product | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(products);
 
   const openSheet = (product: Product | null) => {
     setSheetProduct(product);
@@ -104,17 +116,31 @@ export function ProductsTable() {
             />
           </div>
         ) : (
-          <ProductsMobileList
-            products={products}
-            onOpen={openSheet}
-            onDelete={(product) => {
-              setDeleteError("");
-              setDeleteProductRecord(product);
-            }}
-          />
+          <>
+            <ProductsMobileList
+              products={paginatedItems}
+              onOpen={openSheet}
+              onDelete={(product) => {
+                setDeleteError("");
+                setDeleteProductRecord(product);
+              }}
+            />
+            {totalItems > 0 ? (
+              <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+                <TablePagination
+                  page={page}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  rangeStart={rangeStart}
+                  rangeEnd={rangeEnd}
+                  onPageChange={setPage}
+                />
+              </div>
+            ) : null}
+          </>
         )}
 
-        <Card className="hidden shadow-sm md:block">
+        <Card className="hidden overflow-hidden shadow-sm md:block">
           <MobileTableScroll>
           <Table>
             <TableHeader>
@@ -150,7 +176,7 @@ export function ProductsTable() {
                   </TableCell>
                 </TableRow>
               ) : (
-              products.map((product) => (
+              paginatedItems.map((product) => (
                 <TableRow
                   key={product.id}
                   className="cursor-pointer"
@@ -192,6 +218,16 @@ export function ProductsTable() {
             </TableBody>
           </Table>
           </MobileTableScroll>
+          {totalItems > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
         {deleteError && (
           <p className="text-sm text-destructive">{deleteError}</p>

@@ -62,7 +62,7 @@ export default function RootLayout({
               <TooltipProvider delayDuration={200}>
                 <RouteChangeGuard />
                 {children}
-                <Toaster position="top-center" richColors closeButton />
+                <Toaster position="bottom-right" richColors closeButton />
               </TooltipProvider>
             </CrmDataProvider>
           </AuthProvider>

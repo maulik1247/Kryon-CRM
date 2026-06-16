@@ -19,6 +19,8 @@ import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { SupplierSheet } from "./supplier-sheet";
 import { SuppliersMobileList } from "./suppliers-mobile-list";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -33,6 +35,16 @@ export function SuppliersTable() {
   const [deleteSupplierRecord, setDeleteSupplierRecord] =
     React.useState<Supplier | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(suppliers);
 
   const openSheet = (supplier: Supplier | null) => {
     setSheetSupplier(supplier);
@@ -106,17 +118,31 @@ export function SuppliersTable() {
             />
           </div>
         ) : (
-          <SuppliersMobileList
-            suppliers={suppliers}
-            onOpen={openSheet}
-            onDelete={(supplier) => {
-              setDeleteError("");
-              setDeleteSupplierRecord(supplier);
-            }}
-          />
+          <>
+            <SuppliersMobileList
+              suppliers={paginatedItems}
+              onOpen={openSheet}
+              onDelete={(supplier) => {
+                setDeleteError("");
+                setDeleteSupplierRecord(supplier);
+              }}
+            />
+            {totalItems > 0 ? (
+              <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+                <TablePagination
+                  page={page}
+                  totalPages={totalPages}
+                  totalItems={totalItems}
+                  rangeStart={rangeStart}
+                  rangeEnd={rangeEnd}
+                  onPageChange={setPage}
+                />
+              </div>
+            ) : null}
+          </>
         )}
 
-        <Card className="hidden shadow-sm md:block">
+        <Card className="hidden overflow-hidden shadow-sm md:block">
           <MobileTableScroll>
             <Table>
               <TableHeader>
@@ -147,7 +173,7 @@ export function SuppliersTable() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  suppliers.map((supplier) => (
+                  paginatedItems.map((supplier) => (
                     <TableRow
                       key={supplier.id}
                       className="cursor-pointer"
@@ -178,6 +204,16 @@ export function SuppliersTable() {
               </TableBody>
             </Table>
           </MobileTableScroll>
+          {totalItems > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
         {deleteError ? (
           <p className="text-sm text-destructive">{deleteError}</p>

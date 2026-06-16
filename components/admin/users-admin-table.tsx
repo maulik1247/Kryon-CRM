@@ -21,8 +21,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-provider";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { getRoleLabel } from "@/lib/role-permissions";
 import { getManagerOptions } from "@/lib/user-helpers";
 import { UsersAdminMobileList } from "./users-admin-mobile-list";
@@ -42,6 +50,16 @@ export function UsersAdminTable() {
     () => getManagerOptions(users),
     [users]
   );
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(users);
 
   const handleAdd = (event: React.FormEvent) => {
     event.preventDefault();
@@ -82,7 +100,13 @@ export function UsersAdminTable() {
   };
 
   return (
-    <div className="space-y-4">
+    <Tabs defaultValue="users" className="w-full">
+      <TabsList className="grid h-auto w-full grid-cols-2">
+        <TabsTrigger value="users">Users</TabsTrigger>
+        <TabsTrigger value="permissions">Permissions</TabsTrigger>
+      </TabsList>
+
+      <TabsContent value="users" className="mt-4 space-y-4">
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="font-display text-base">Users & Access</CardTitle>
@@ -133,7 +157,7 @@ export function UsersAdminTable() {
           </form>
 
           <UsersAdminMobileList
-            users={users}
+            users={paginatedItems}
             currentUserId={currentUser.id}
             managerOptions={managerOptions}
             onRoleChange={(userId, nextRole) =>
@@ -146,8 +170,20 @@ export function UsersAdminTable() {
             }
             onRemove={handleRemove}
           />
+          {totalItems > 0 ? (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </div>
+          ) : null}
 
-          <div className="hidden md:block">
+          <div className="hidden overflow-hidden md:block">
             <MobileTableScroll>
               <Table>
                 <TableHeader>
@@ -161,7 +197,7 @@ export function UsersAdminTable() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {users.map((user) => (
+                  {paginatedItems.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium">
                         {user.name}
@@ -229,13 +265,26 @@ export function UsersAdminTable() {
                 </TableBody>
               </Table>
             </MobileTableScroll>
+            {totalItems > 0 ? (
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            ) : null}
           </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
+      </TabsContent>
 
-      <RolePermissionsMatrix />
-    </div>
+      <TabsContent value="permissions" className="mt-4">
+        <RolePermissionsMatrix />
+      </TabsContent>
+    </Tabs>
   );
 }

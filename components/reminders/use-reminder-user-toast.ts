@@ -22,7 +22,7 @@ export function useReminderUserToast() {
     if (unread.length > 0) {
       notifyInfo(
         `${unread.length} reminder${unread.length === 1 ? "" : "s"} for you`,
-        "Open Reminders in the sidebar to view assignments."
+        "Open Reminders from the header to view assignments."
       );
     }
   }, [currentUser.id, reminders]);

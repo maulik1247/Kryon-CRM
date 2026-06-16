@@ -35,6 +35,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { FormSection } from "@/components/shared/form-section";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
   formatLeadDate,
@@ -249,11 +250,11 @@ export function CustomerSheet({
             onSubmit={form.handleSubmit(onSubmit)}
             className="flex min-h-0 flex-1 flex-col overflow-hidden"
           >
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden px-6 py-4">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
               <Tabs
                 value={activeTab}
                 onValueChange={setActiveTab}
-                className="flex min-h-0 flex-1 flex-col"
+                className="w-full"
               >
                 <TabsList className="grid h-auto w-full shrink-0 grid-cols-4">
                   <TabsTrigger value="details">Details</TabsTrigger>
@@ -285,8 +286,9 @@ export function CustomerSheet({
 
                 <TabsContent
                   value="details"
-                  className="mt-4 flex-1 space-y-4 overflow-y-auto data-[state=inactive]:hidden"
+                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
                 >
+                  <FormSection>
                   <FormField
                     control={form.control}
                     name="name"
@@ -449,51 +451,49 @@ export function CustomerSheet({
                     />
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <FormField
-                      control={form.control}
-                      name="gstin"
-                      rules={{
-                        validate: (value) =>
-                          isValidGstin(value) ||
-                          "Enter a valid 15-character GSTIN.",
-                      }}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>GSTIN</FormLabel>
-                          <FormControl>
-                            <Input
-                              maxLength={15}
-                              placeholder="22AAAAA0000A1Z5"
-                              {...field}
-                              onChange={(e) =>
-                                field.onChange(e.target.value.toUpperCase())
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                  <FormField
+                    control={form.control}
+                    name="gstin"
+                    rules={{
+                      validate: (value) =>
+                        isValidGstin(value) ||
+                        "Enter a valid 15-character GSTIN.",
+                    }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>GSTIN</FormLabel>
+                        <FormControl>
+                          <Input
+                            maxLength={15}
+                            placeholder="22AAAAA0000A1Z5"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(e.target.value.toUpperCase())
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                    <FormField
-                      control={form.control}
-                      name="websiteUrl"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Website</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="url"
-                              placeholder="https://"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
+                  <FormField
+                    control={form.control}
+                    name="websiteUrl"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Website</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="url"
+                            placeholder="https://"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <FormField
@@ -555,7 +555,7 @@ export function CustomerSheet({
                     name="notes"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Notes</FormLabel>
+                        <FormLabel>Notes (optional)</FormLabel>
                         <FormControl>
                           <Textarea
                             rows={3}
@@ -568,6 +568,8 @@ export function CustomerSheet({
                     )}
                   />
 
+                  </FormSection>
+
                   {customer ? (
                     <p className="text-xs text-muted-foreground">
                       {linkedContacts} contact
@@ -579,7 +581,7 @@ export function CustomerSheet({
 
                 <TabsContent
                   value="plants"
-                  className="mt-4 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
                 >
                   <CustomerPlantLocationsEditor
                     value={plantLocations}
@@ -589,7 +591,7 @@ export function CustomerSheet({
 
                 <TabsContent
                   value="documents"
-                  className="mt-4 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
                 >
                   <CustomerDocumentsEditor
                     value={registrationDocuments}
@@ -601,7 +603,7 @@ export function CustomerSheet({
 
                 <TabsContent
                   value="products"
-                  className="mt-4 flex-1 overflow-y-auto data-[state=inactive]:hidden"
+                  className="mt-4 space-y-4 data-[state=inactive]:hidden"
                 >
                   <CustomerProductDetailsEditor
                     value={customerProducts}

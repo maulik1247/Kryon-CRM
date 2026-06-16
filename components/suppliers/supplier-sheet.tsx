@@ -4,7 +4,6 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
   SheetClose,
@@ -118,7 +117,7 @@ export function SupplierSheet({
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-6 py-4">
             <FormField label="Supplier name" htmlFor="supplier-name">
               <Input
                 id="supplier-name"
@@ -129,33 +128,29 @@ export function SupplierSheet({
               />
             </FormField>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Type" htmlFor="supplier-type">
-                <FormSelect
-                  id="supplier-type"
-                  value={form.type}
-                  onValueChange={(value) => update("type", value as SupplierType)}
-                  options={SUPPLIER_TYPES.map((type) => ({
-                    value: type,
-                    label: type,
-                  }))}
-                />
-              </FormField>
+            <FormField label="Type" htmlFor="supplier-type">
+              <FormSelect
+                id="supplier-type"
+                value={form.type}
+                onValueChange={(value) => update("type", value as SupplierType)}
+                options={SUPPLIER_TYPES.map((type) => ({
+                  value: type,
+                  label: type,
+                }))}
+              />
+            </FormField>
 
-              <FormField label="Country / region" htmlFor="supplier-region">
-                <Input
-                  id="supplier-region"
-                  required
-                  value={form.region}
-                  onChange={(e) => update("region", e.target.value)}
-                  placeholder="e.g. India"
-                />
-              </FormField>
-            </div>
+            <FormField label="Country / region" htmlFor="supplier-region">
+              <Input
+                id="supplier-region"
+                required
+                value={form.region}
+                onChange={(e) => update("region", e.target.value)}
+                placeholder="e.g. India"
+              />
+            </FormField>
 
-            <Separator />
-
-            <FormField label="Notes" htmlFor="supplier-notes">
+            <FormField label="Notes" htmlFor="supplier-notes" optional>
               <Textarea
                 id="supplier-notes"
                 rows={3}

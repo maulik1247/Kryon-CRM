@@ -21,6 +21,8 @@ import { CustomersMobileList } from "./customers-mobile-list";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { downloadCustomersExcel } from "@/lib/customer-excel";
 import { getVendorStatusVariant } from "@/lib/vendor-status";
@@ -41,6 +43,16 @@ export function CustomersTable() {
   const [deleteCustomerRecord, setDeleteCustomerRecord] =
     React.useState<Customer | null>(null);
   const [deleteError, setDeleteError] = React.useState("");
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(customers);
 
   const openSheet = (customer: Customer | null) => {
     setSheetCustomer(customer);
@@ -112,15 +124,27 @@ export function CustomersTable() {
 
       <div className="space-y-4">
         <CustomersMobileList
-          customers={customers}
+          customers={paginatedItems}
           onOpen={openSheet}
           onDelete={(customer) => {
             setDeleteError("");
             setDeleteCustomerRecord(customer);
           }}
         />
+        {totalItems > 0 ? (
+          <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          </div>
+        ) : null}
 
-        <Card className="hidden md:block">
+        <Card className="hidden overflow-hidden md:block">
           <MobileTableScroll>
             <Table>
               <TableHeader>
@@ -137,7 +161,7 @@ export function CustomersTable() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {customers.map((customer) => (
+                {paginatedItems.map((customer) => (
                   <TableRow
                     key={customer.id}
                     className="cursor-pointer"
@@ -185,6 +209,16 @@ export function CustomersTable() {
               </TableBody>
             </Table>
           </MobileTableScroll>
+          {totalItems > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
         {deleteError && (
           <p className="text-sm text-destructive">{deleteError}</p>

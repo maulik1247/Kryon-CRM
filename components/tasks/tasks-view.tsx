@@ -23,12 +23,14 @@ import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { TableActions } from "@/components/shared/table-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { InfoLabel } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
 import { DealSheet } from "@/components/deals/deal-sheet";
 import { TaskSheet } from "@/components/tasks/task-sheet";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
-import { AddTaskDialog } from "@/components/tasks/add-task-dialog";
+import { AddTaskSheet } from "@/components/tasks/add-task-sheet";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -69,6 +71,16 @@ export function TasksView() {
     }
     return sorted.filter((task) => isTaskOpen(task.status));
   }, [dealTasks, filter, currentUser, users, deals]);
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(tasks, 10, filter);
 
   const openTask = (taskId: string) => {
     setSelectedTaskId(taskId);
@@ -125,7 +137,7 @@ export function TasksView() {
             </SelectContent>
           </Select>
         }
-        actions={<AddTaskDialog />}
+        actions={<AddTaskSheet />}
       />
 
       {tasks.length === 0 ? (
@@ -134,31 +146,45 @@ export function TasksView() {
             icon={ListTodo}
             title="No tasks yet"
             description="Create a task to plan the next step on a deal."
-            action={<AddTaskDialog />}
+            action={<AddTaskSheet />}
           />
         </div>
       ) : (
-        <TasksMobileList
-          tasks={tasks}
-          customerNameByDealId={(dealId) => {
-            const deal = deals.find((entry) => entry.id === dealId);
-            return deal ? getCustomerById(deal.customerId)?.name : undefined;
-          }}
-          addedByName={(userId) => getUserName(users, userId)}
-          assignedToName={(userId) => getUserName(users, userId)}
-          isOverdue={(task) => {
-            const dueDate = new Date(`${task.dueDate}T00:00:00`);
-            dueDate.setHours(0, 0, 0, 0);
-            return isTaskOpen(task.status) && dueDate < today;
-          }}
-          onOpenTask={openTask}
-          onOpenDeal={openDeal}
-          onStatusChange={updateDealTaskStatus}
-          onDelete={(task) => deleteDealTask(task.id)}
-        />
+        <>
+          <TasksMobileList
+            tasks={paginatedItems}
+            customerNameByDealId={(dealId) => {
+              const deal = deals.find((entry) => entry.id === dealId);
+              return deal ? getCustomerById(deal.customerId)?.name : undefined;
+            }}
+            addedByName={(userId) => getUserName(users, userId)}
+            assignedToName={(userId) => getUserName(users, userId)}
+            isOverdue={(task) => {
+              const dueDate = new Date(`${task.dueDate}T00:00:00`);
+              dueDate.setHours(0, 0, 0, 0);
+              return isTaskOpen(task.status) && dueDate < today;
+            }}
+            onOpenTask={openTask}
+            onOpenDeal={openDeal}
+            onStatusChange={updateDealTaskStatus}
+            onDelete={(task) => deleteDealTask(task.id)}
+          />
+          {totalItems > 0 ? (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </div>
+          ) : null}
+        </>
       )}
 
-      <Card className="hidden shadow-sm md:block">
+      <Card className="hidden overflow-hidden shadow-sm md:block">
         <MobileTableScroll>
           <Table>
             <TableHeader>
@@ -185,13 +211,13 @@ export function TasksView() {
                       icon={ListTodo}
                       title="No tasks yet"
                       description="Create a task to plan the next step on a deal."
-                      action={<AddTaskDialog />}
+                      action={<AddTaskSheet />}
                       className="m-4 border-none bg-transparent shadow-none"
                     />
                   </TableCell>
                 </TableRow>
               ) : (
-                tasks.map((task) => {
+                paginatedItems.map((task) => {
                   const deal = deals.find(
                     (entry) => entry.id === task.dealId
                   );
@@ -287,6 +313,16 @@ export function TasksView() {
             </TableBody>
           </Table>
         </MobileTableScroll>
+        {totalItems > 0 ? (
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPageChange={setPage}
+          />
+        ) : null}
       </Card>
 
       <TaskSheet

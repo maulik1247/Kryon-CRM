@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { getRoleLabel, ROLE_PERMISSIONS, USER_ROLES } from "@/lib/role-permissions";
 import type { UserRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -21,8 +23,18 @@ interface RolePermissionsMatrixProps {
 export function RolePermissionsMatrix({
   highlightRole,
 }: RolePermissionsMatrixProps) {
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(USER_ROLES);
+
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="pb-3">
         <CardTitle className="font-display text-base">
           Roles & Permissions
@@ -45,7 +57,7 @@ export function RolePermissionsMatrix({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {USER_ROLES.map((role) => {
+              {paginatedItems.map((role) => {
                 const permissions = ROLE_PERMISSIONS[role];
                 const highlighted = highlightRole === role;
 
@@ -77,6 +89,16 @@ export function RolePermissionsMatrix({
             </TableBody>
           </Table>
         </MobileTableScroll>
+        {totalItems > 0 ? (
+          <TablePagination
+            page={page}
+            totalPages={totalPages}
+            totalItems={totalItems}
+            rangeStart={rangeStart}
+            rangeEnd={rangeEnd}
+            onPageChange={setPage}
+          />
+        ) : null}
       </CardContent>
     </Card>
   );

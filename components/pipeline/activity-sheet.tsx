@@ -16,6 +16,7 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import { FormSection } from "@/components/shared/form-section";
 import { MeetingLogForm } from "@/components/activity/meeting-log-form";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -191,24 +192,13 @@ export function ActivitySheet({
         {activity && hasAccess ? (
           isMeetingLog ? (
             <>
-              <div className="flex-1 overflow-y-auto px-6 py-4">
-                {onViewDeal && activity.dealId ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mb-4 gap-2"
-                    onClick={() => onViewDeal(activity.dealId)}
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    View linked deal
-                  </Button>
-                ) : null}
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
                 <MeetingLogForm
                   activity={activity}
                   formId="edit-meeting-log-form"
                   hideActions
                   submitLabel="Save changes"
+                  onViewDeal={onViewDeal}
                   onSaved={() => onOpenChange(false)}
                 />
               </div>
@@ -237,7 +227,8 @@ export function ActivitySheet({
               onSubmit={handleSimpleSubmit}
               className="flex min-h-0 flex-1 flex-col overflow-hidden"
             >
-              <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+                <FormSection>
                 <FormField label="Type" htmlFor="activity-type">
                   <FormSelect
                     id="activity-type"
@@ -261,20 +252,36 @@ export function ActivitySheet({
                 </FormField>
 
                 <FormField label="Deal" htmlFor="activity-deal">
-                  <FormSelect
-                    id="activity-deal"
-                    value={form.dealId}
-                    onValueChange={handleDealChange}
-                    disabled={visibleDeals.length === 0}
-                    placeholder="Select deal"
-                    options={visibleDeals.map((entry) => {
-                      const dealCustomer = getCustomerById(entry.customerId);
-                      return {
-                        value: entry.id,
-                        label: `${dealCustomer?.name ?? "Unknown"} · ${entry.id}`,
-                      };
-                    })}
-                  />
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <FormSelect
+                        id="activity-deal"
+                        value={form.dealId}
+                        onValueChange={handleDealChange}
+                        disabled={visibleDeals.length === 0}
+                        placeholder="Select deal"
+                        options={visibleDeals.map((entry) => {
+                          const dealCustomer = getCustomerById(entry.customerId);
+                          return {
+                            value: entry.id,
+                            label: `${dealCustomer?.name ?? "Unknown"} · ${entry.id}`,
+                          };
+                        })}
+                      />
+                    </div>
+                    {onViewDeal && form.dealId ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="shrink-0"
+                        onClick={() => onViewDeal(form.dealId)}
+                        aria-label="View linked deal"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </Button>
+                    ) : null}
+                  </div>
                 </FormField>
 
                 {contacts.length > 0 ? (
@@ -302,11 +309,11 @@ export function ActivitySheet({
                   />
                 </FormField>
 
-                <FormField label="Outcome" htmlFor="activity-outcome">
+                <FormField label="Outcome" htmlFor="activity-outcome" optional>
                   <Textarea
                     id="activity-outcome"
                     rows={2}
-                    placeholder="Next steps or result (optional)"
+                    placeholder="Next steps or result"
                     value={form.outcome}
                     onChange={(e) => update("outcome", e.target.value)}
                   />
@@ -320,6 +327,7 @@ export function ActivitySheet({
                     {getUserName(users, activity.loggedByUserId)}
                   </p>
                 </FormField>
+                </FormSection>
               </div>
 
               <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">

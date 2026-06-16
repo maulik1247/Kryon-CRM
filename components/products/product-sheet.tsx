@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Upload } from "lucide-react";
 import {
   Sheet,
   SheetClose,
@@ -14,10 +13,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
-import { Label } from "@/components/ui/label";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import { FormSection } from "@/components/shared/form-section";
+import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
   isValidHsnCode,
@@ -94,28 +99,6 @@ function formToProduct(form: ProductFormState, id: string): Product {
   };
 }
 
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {description ? (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 interface ProductSheetProps {
   product: Product | null;
   open: boolean;
@@ -149,22 +132,6 @@ export function ProductSheet({
   ) => {
     setForm((prev) => ({ ...prev, [field]: value }));
     if (field === "hsnCode") setHsnError("");
-  };
-
-  const handleSpecSheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!/\.pdf$/i.test(file.name)) {
-      return;
-    }
-
-    update("specSheet", {
-      id: `spec-${Date.now()}`,
-      name: file.name,
-      size: file.size,
-    });
-    e.target.value = "";
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -209,29 +176,35 @@ export function ProductSheet({
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-            <FormSection title="Product Record">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Product SKU / Part Number" htmlFor="sku">
-                  <Input
-                    id="sku"
-                    required
-                    value={form.sku}
-                    onChange={(e) => update("sku", e.target.value)}
-                    className="font-mono"
-                  />
-                </FormField>
-                <FormField label="Model Name" htmlFor="model">
-                  <Input
-                    id="model"
-                    required
-                    value={form.model}
-                    onChange={(e) => update("model", e.target.value)}
-                  />
-                </FormField>
-              </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            <Tabs defaultValue="identity" className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-3">
+                <TabsTrigger value="identity">Identity</TabsTrigger>
+                <TabsTrigger value="specs">Specs</TabsTrigger>
+                <TabsTrigger value="commercial">Commercial</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="identity" className="mt-4 space-y-4">
+            <FormSection>
+              <FormField label="Product SKU / part number" htmlFor="sku">
+                <Input
+                  id="sku"
+                  required
+                  value={form.sku}
+                  onChange={(e) => update("sku", e.target.value)}
+                  className="font-mono"
+                />
+              </FormField>
+              <FormField label="Model name" htmlFor="model">
+                <Input
+                  id="model"
+                  required
+                  value={form.model}
+                  onChange={(e) => update("model", e.target.value)}
+                />
+              </FormField>
               <FormField
-                label="Motor / Controller Type"
+                label="Motor / controller type"
                 htmlFor="motorControllerType"
               >
                 <FormSelect
@@ -247,12 +220,11 @@ export function ProductSheet({
                 />
               </FormField>
             </FormSection>
+              </TabsContent>
 
-            <Separator />
-
-            <FormSection title="Technical Specifications">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Voltage (V)" htmlFor="voltage">
+              <TabsContent value="specs" className="mt-4 space-y-4">
+            <FormSection>
+              <FormField label="Voltage (V)" htmlFor="voltage">
                   <Input
                     id="voltage"
                     type="number"
@@ -260,53 +232,60 @@ export function ProductSheet({
                     min={1}
                     value={form.voltage}
                     onChange={(e) => update("voltage", e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Wattage (W)" htmlFor="wattage">
-                  <Input
-                    id="wattage"
-                    type="number"
-                    required
-                    min={1}
-                    value={form.wattage}
-                    onChange={(e) => update("wattage", e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Number of Poles" htmlFor="poles">
-                  <FormSelect
-                    id="poles"
-                    value={String(form.poles)}
-                    onValueChange={(v) =>
-                      update(
-                        "poles",
-                        (v === "Other" ? "Other" : Number(v)) as MotorPoleCount
-                      )
-                    }
-                    options={MOTOR_POLE_COUNTS.map((pole) => ({
-                      value: String(pole),
-                      label: String(pole),
-                    }))}
-                  />
-                </FormField>
-                <FormField label="Sensor Type" htmlFor="sensorType">
-                  <FormSelect
-                    id="sensorType"
-                    value={form.sensorType}
-                    onValueChange={(v) => update("sensorType", v as SensorType)}
-                    options={SENSOR_TYPES.map((sensor) => ({
-                      value: sensor,
-                      label: sensor,
-                    }))}
-                  />
-                </FormField>
-              </div>
+                />
+              </FormField>
+              <FormField label="Wattage (W)" htmlFor="wattage">
+                <Input
+                  id="wattage"
+                  type="number"
+                  required
+                  min={1}
+                  value={form.wattage}
+                  onChange={(e) => update("wattage", e.target.value)}
+                />
+              </FormField>
+              <FormField label="Number of poles" htmlFor="poles">
+                <FormSelect
+                  id="poles"
+                  value={String(form.poles)}
+                  onValueChange={(v) =>
+                    update(
+                      "poles",
+                      (v === "Other" ? "Other" : Number(v)) as MotorPoleCount
+                    )
+                  }
+                  options={MOTOR_POLE_COUNTS.map((pole) => ({
+                    value: String(pole),
+                    label: String(pole),
+                  }))}
+                />
+              </FormField>
+              <FormField label="Sensor type" htmlFor="sensorType">
+                <FormSelect
+                  id="sensorType"
+                  value={form.sensorType}
+                  onValueChange={(v) => update("sensorType", v as SensorType)}
+                  options={SENSOR_TYPES.map((sensor) => ({
+                    value: sensor,
+                    label: sensor,
+                  }))}
+                />
+              </FormField>
+              <FormField label="Product description" htmlFor="description" optional>
+                <Textarea
+                  id="description"
+                  rows={3}
+                  value={form.description}
+                  onChange={(e) => update("description", e.target.value)}
+                  placeholder="Application notes, key features..."
+                />
+              </FormField>
             </FormSection>
+              </TabsContent>
 
-            <Separator />
-
-            <FormSection title="Commercial & Documentation">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="HSN Code" htmlFor="hsnCode">
+              <TabsContent value="commercial" className="mt-4 space-y-4">
+            <FormSection>
+              <FormField label="HSN code" htmlFor="hsnCode">
                   <Input
                     id="hsnCode"
                     required
@@ -323,65 +302,48 @@ export function ProductSheet({
                     <p className="text-xs text-destructive">{hsnError}</p>
                   ) : null}
                 </FormField>
-                <FormField
-                  label="Current Selling Price (INR)"
-                  htmlFor="sellingPrice"
-                >
-                  <Input
-                    id="sellingPrice"
-                    type="number"
-                    required
-                    min={1}
-                    value={form.sellingPrice}
-                    onChange={(e) => update("sellingPrice", e.target.value)}
-                  />
-                </FormField>
-              </div>
-              <FormField label="Product Description" htmlFor="description">
-                <Textarea
-                  id="description"
-                  rows={3}
-                  value={form.description}
-                  onChange={(e) => update("description", e.target.value)}
-                  placeholder="Application notes, key features, platform fit..."
+              <FormField
+                label="Selling price (INR)"
+                htmlFor="sellingPrice"
+              >
+                <Input
+                  id="sellingPrice"
+                  type="number"
+                  required
+                  min={1}
+                  value={form.sellingPrice}
+                  onChange={(e) => update("sellingPrice", e.target.value)}
                 />
               </FormField>
-              <div className="space-y-2">
-                <Label htmlFor="specSheet">Spec Sheet / Drawing</Label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Button type="button" variant="outline" size="sm" asChild>
-                    <label htmlFor="specSheet" className="cursor-pointer">
-                      <Upload className="h-4 w-4" />
-                      Upload PDF
-                    </label>
-                  </Button>
-                  <Input
-                    id="specSheet"
-                    type="file"
-                    accept=".pdf"
-                    className="hidden"
-                    onChange={handleSpecSheetChange}
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    PDF only — optional
-                  </span>
-                </div>
-                {form.specSheet ? (
-                  <div className="flex items-center justify-between rounded-md border px-3 py-2 text-sm">
-                    <span className="truncate">{form.specSheet.name}</span>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => update("specSheet", undefined)}
-                      aria-label={`Remove ${form.specSheet.name}`}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : null}
-              </div>
+              <DocumentFilesEditor
+                inputId="specSheet"
+                label="Spec Sheet / Drawing"
+                value={
+                  form.specSheet
+                    ? [
+                        {
+                          id: form.specSheet.id,
+                          name: form.specSheet.name,
+                        },
+                      ]
+                    : []
+                }
+                onChange={(files) =>
+                  update(
+                    "specSheet",
+                    files[0]
+                      ? { id: files[0].id, name: files[0].name }
+                      : undefined
+                  )
+                }
+                multiple={false}
+                accept=".pdf"
+                helperText="PDF only — optional"
+                emptyMessage="No spec sheet uploaded."
+              />
             </FormSection>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">

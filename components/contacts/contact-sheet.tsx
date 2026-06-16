@@ -13,10 +13,16 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import { FormSection } from "@/components/shared/form-section";
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
   BUYING_ROLES,
@@ -92,28 +98,6 @@ function formToContact(form: ContactFormState, id: string): Contact {
     birthdayOrAnniversary: form.birthdayOrAnniversary || undefined,
     notes: form.notes.trim() || undefined,
   };
-}
-
-function FormSection({
-  title,
-  description,
-  children,
-}: {
-  title: string;
-  description?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-4">
-      <div>
-        <h3 className="text-sm font-semibold">{title}</h3>
-        {description ? (
-          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
-        ) : null}
-      </div>
-      {children}
-    </section>
-  );
 }
 
 interface ContactSheetProps {
@@ -196,11 +180,16 @@ export function ContactSheet({
           onSubmit={handleSubmit}
           className="flex min-h-0 flex-1 flex-col overflow-hidden"
         >
-          <div className="flex-1 space-y-6 overflow-y-auto px-6 py-4">
-            <FormSection
-              title="Person & Account"
-              description="Multiple contacts per customer across R&D, Purchase, VD, Quality, and Management."
-            >
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-4">
+            <Tabs defaultValue="profile" className="w-full">
+              <TabsList className="grid h-auto w-full grid-cols-3">
+                <TabsTrigger value="profile">Profile</TabsTrigger>
+                <TabsTrigger value="contact">Contact</TabsTrigger>
+                <TabsTrigger value="relationship">Relationship</TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="profile" className="mt-4 space-y-4">
+            <FormSection>
               <FormField label="Contact Name" htmlFor="contact-name">
                 <Input
                   id="contact-name"
@@ -209,7 +198,7 @@ export function ContactSheet({
                   onChange={(e) => update("name", e.target.value)}
                 />
               </FormField>
-              <FormField label="Designation / Title" htmlFor="designation">
+              <FormField label="Designation / title" htmlFor="designation">
                 <Input
                   id="designation"
                   required
@@ -217,70 +206,66 @@ export function ContactSheet({
                   onChange={(e) => update("designation", e.target.value)}
                 />
               </FormField>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Department" htmlFor="department">
-                  <FormSelect
-                    id="department"
-                    value={form.department}
-                    onValueChange={(v) =>
-                      update("department", v as ContactDepartment)
-                    }
-                    options={CONTACT_DEPARTMENTS.map((department) => ({
-                      value: department,
-                      label: department,
-                    }))}
-                  />
-                </FormField>
-                <FormField label="Customer" htmlFor="customerId">
-                  <FormSelect
-                    id="customerId"
-                    value={form.customerId}
-                    onValueChange={(v) => update("customerId", v)}
-                    disabled={customers.length === 0}
-                    placeholder="Select customer"
-                    options={customers.map((c) => ({
-                      value: c.id,
-                      label: c.name,
-                    }))}
-                  />
-                </FormField>
-              </div>
+              <FormField label="Department" htmlFor="department">
+                <FormSelect
+                  id="department"
+                  value={form.department}
+                  onValueChange={(v) =>
+                    update("department", v as ContactDepartment)
+                  }
+                  options={CONTACT_DEPARTMENTS.map((department) => ({
+                    value: department,
+                    label: department,
+                  }))}
+                />
+              </FormField>
+              <FormField label="Customer" htmlFor="customerId">
+                <FormSelect
+                  id="customerId"
+                  value={form.customerId}
+                  onValueChange={(v) => update("customerId", v)}
+                  disabled={customers.length === 0}
+                  placeholder="Select customer"
+                  options={customers.map((c) => ({
+                    value: c.id,
+                    label: c.name,
+                  }))}
+                />
+              </FormField>
             </FormSection>
+              </TabsContent>
 
-            <Separator />
-
-            <FormSection title="Contact Details">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField label="Phone (Mobile)" htmlFor="phone">
+              <TabsContent value="contact" className="mt-4 space-y-4">
+            <FormSection>
+              <FormField label="Phone (mobile)" htmlFor="phone">
                   <Input
                     id="phone"
                     required
                     value={form.phone}
                     onChange={(e) => update("phone", e.target.value)}
-                  />
-                </FormField>
-                <FormField label="Email" htmlFor="email">
-                  <Input
-                    id="email"
-                    type="email"
-                    required
-                    value={form.email}
-                    onChange={(e) => update("email", e.target.value)}
-                  />
-                </FormField>
-              </div>
+                />
+              </FormField>
+              <FormField label="Email" htmlFor="email">
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={form.email}
+                  onChange={(e) => update("email", e.target.value)}
+                />
+              </FormField>
               <FormField
-                label="Phone (Office / Landline)"
+                label="Phone (office)"
                 htmlFor="officePhone"
+                optional
               >
                 <Input
                   id="officePhone"
                   value={form.officePhone}
                   onChange={(e) => update("officePhone", e.target.value)}
-                  placeholder="Optional"
                 />
               </FormField>
-              <FormField label="LinkedIn Profile URL" htmlFor="linkedInUrl">
+              <FormField label="LinkedIn URL" htmlFor="linkedInUrl" optional>
                 <Input
                   id="linkedInUrl"
                   type="url"
@@ -290,15 +275,11 @@ export function ContactSheet({
                 />
               </FormField>
             </FormSection>
+              </TabsContent>
 
-            <Separator />
-
-            <FormSection title="Buying & Relationship">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <FormField
-                  label="Role in Buying Decision"
-                  htmlFor="buyingRole"
-                >
+              <TabsContent value="relationship" className="mt-4 space-y-4">
+            <FormSection>
+              <FormField label="Role in buying decision" htmlFor="buyingRole">
                   <FormSelect
                     id="buyingRole"
                     value={form.buyingRole}
@@ -308,19 +289,18 @@ export function ContactSheet({
                       label: role,
                     }))}
                   />
-                </FormField>
-                <FormField label="Primary Contact Flag" htmlFor="isPrimary">
-                  <FormSelect
-                    id="isPrimary"
-                    value={form.isPrimary}
-                    onValueChange={(v) =>
-                      update("isPrimary", v as "yes" | "no")
-                    }
-                    options={[...PRIMARY_CONTACT_OPTIONS]}
-                  />
-                </FormField>
-              </div>
-              <FormField label="Reports To" htmlFor="reportsTo">
+              </FormField>
+              <FormField label="Primary contact" htmlFor="isPrimary">
+                <FormSelect
+                  id="isPrimary"
+                  value={form.isPrimary}
+                  onValueChange={(v) =>
+                    update("isPrimary", v as "yes" | "no")
+                  }
+                  options={[...PRIMARY_CONTACT_OPTIONS]}
+                />
+              </FormField>
+              <FormField label="Reports to" htmlFor="reportsTo" optional>
                 {reportOptions.length > 0 ? (
                   <FormSelect
                     id="reportsTo"
@@ -346,22 +326,19 @@ export function ContactSheet({
                   />
                 )}
               </FormField>
+
               <FormField
-                label="Birthday / Anniversary"
+                label="Birthday / anniversary"
                 htmlFor="birthdayOrAnniversary"
+                optional
               >
                 <DatePicker
                   value={form.birthdayOrAnniversary}
                   onChange={(value) => update("birthdayOrAnniversary", value)}
-                  placeholder="Optional — for relationship building"
+                  placeholder="Optional"
                 />
               </FormField>
-            </FormSection>
-
-            <Separator />
-
-            <FormSection title="Notes">
-              <FormField label="Notes about the person" htmlFor="notes">
+              <FormField label="Notes" htmlFor="notes" optional>
                 <Textarea
                   id="notes"
                   rows={4}
@@ -371,6 +348,8 @@ export function ContactSheet({
                 />
               </FormField>
             </FormSection>
+              </TabsContent>
+            </Tabs>
           </div>
 
           <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-end">

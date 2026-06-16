@@ -16,6 +16,8 @@ import { Button } from "@/components/ui/button";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { AttendanceMobileList } from "@/components/attendance/attendance-mobile-list";
 import { InfoTip } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
@@ -42,6 +44,16 @@ export function AttendanceView() {
       ),
     [attendanceRecords, currentUser.id, isAdmin]
   );
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(records);
 
   const todayRecord = getTodayAttendance(attendanceRecords, currentUser.id);
   const todayStatus = getAttendanceStatus(todayRecord);
@@ -103,15 +115,29 @@ export function AttendanceView() {
           />
         </div>
       ) : (
-        <AttendanceMobileList
-          records={records}
-          showUser={isAdmin}
-          userName={(userId) => getUserName(users, userId)}
-          getStatus={getAttendanceStatus}
-        />
+        <>
+          <AttendanceMobileList
+            records={paginatedItems}
+            showUser={isAdmin}
+            userName={(userId) => getUserName(users, userId)}
+            getStatus={getAttendanceStatus}
+          />
+          {totalItems > 0 ? (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </div>
+          ) : null}
+        </>
       )}
 
-      <Card className="hidden shadow-sm md:block">
+      <Card className="hidden overflow-hidden shadow-sm md:block">
           <MobileTableScroll>
             <Table>
               <TableHeader>
@@ -136,7 +162,7 @@ export function AttendanceView() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  records.map((record) => {
+                  paginatedItems.map((record) => {
                     const status = getAttendanceStatus(record);
 
                     return (
@@ -183,6 +209,16 @@ export function AttendanceView() {
               </TableBody>
             </Table>
           </MobileTableScroll>
+          {totalItems > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
     </>
   );

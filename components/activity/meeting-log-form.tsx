@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/tabs";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
+import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { UserMultiSelect } from "@/components/shared/user-multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
 import { useAuth } from "@/lib/auth-provider";
@@ -44,6 +45,7 @@ interface MeetingLogFormProps {
   defaultDealId?: string;
   defaultCustomerId?: string;
   onSaved?: () => void;
+  onViewDeal?: (dealId: string) => void;
   formId?: string;
   hideActions?: boolean;
   submitLabel?: string;
@@ -77,6 +79,7 @@ export function MeetingLogForm({
   defaultDealId,
   defaultCustomerId,
   onSaved,
+  onViewDeal,
   formId = "meeting-log-form",
   hideActions = false,
   submitLabel = "Save meeting log",
@@ -219,16 +222,6 @@ export function MeetingLogForm({
     setContactPicker("");
   };
 
-  const handleAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setAttachments((prev) => [
-      ...prev,
-      { id: `attach-${Date.now()}`, name: file.name, size: file.size },
-    ]);
-    e.target.value = "";
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!summary.trim() || !dealId || !customerId) return;
@@ -296,8 +289,16 @@ export function MeetingLogForm({
   return (
     <form id={formId} onSubmit={handleSubmit}>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid h-auto w-full grid-cols-3">
+        <TabsList className="grid h-auto w-full grid-cols-4">
           <TabsTrigger value="details">Details</TabsTrigger>
+          <TabsTrigger value="attendees">
+            Attendees
+            {ourAttendeeIds.length + customerAttendees.length > 0 ? (
+              <span className="ml-1 text-xs text-muted-foreground">
+                ({ourAttendeeIds.length + customerAttendees.length})
+              </span>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="actions">
             Actions
             {actionItems.length > 0 ? (
@@ -402,19 +403,110 @@ export function MeetingLogForm({
           </FormField>
 
           <FormField label="Deal" htmlFor="meeting-deal">
-            <FormSelect
-              id="meeting-deal"
-              value={dealId}
-              onValueChange={setDealId}
-              disabled={customerDeals.length === 0}
-              placeholder="Select deal"
-              options={customerDeals.map((deal) => ({
-                value: deal.id,
-                label: deal.id,
-              }))}
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <FormSelect
+                  id="meeting-deal"
+                  value={dealId}
+                  onValueChange={setDealId}
+                  disabled={customerDeals.length === 0}
+                  placeholder="Select deal"
+                  options={customerDeals.map((deal) => ({
+                    value: deal.id,
+                    label: deal.id,
+                  }))}
+                />
+              </div>
+              {onViewDeal && dealId ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="shrink-0"
+                  onClick={() => onViewDeal(dealId)}
+                  aria-label="View linked deal"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </Button>
+              ) : null}
+            </div>
+          </FormField>
+
+          <FormField label="Discussion summary" htmlFor="meeting-summary">
+            <Textarea
+              id="meeting-summary"
+              rows={3}
+              required
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+              placeholder="What was discussed?"
             />
           </FormField>
 
+          <FormField label="Key decisions" htmlFor="meeting-decisions" optional>
+            <Textarea
+              id="meeting-decisions"
+              rows={2}
+              value={keyDecisions}
+              onChange={(e) => setKeyDecisions(e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Confidence updated" htmlFor="meeting-confidence" optional>
+            <FormSelect
+              id="meeting-confidence"
+              value={confidenceUpdated}
+              onValueChange={setConfidenceUpdated}
+              options={[
+                { value: "__none__", label: "No change" },
+                ...CONFIDENCE_FORM_OPTIONS,
+              ]}
+            />
+          </FormField>
+
+          <FormField label="Customer sentiment" htmlFor="meeting-sentiment">
+            <FormSelect
+              id="meeting-sentiment"
+              value={customerSentiment}
+              onValueChange={setCustomerSentiment}
+              options={[
+                { value: "__none__", label: "Not recorded" },
+                ...CUSTOMER_SENTIMENTS.map((sentiment) => ({
+                  value: sentiment,
+                  label: sentiment,
+                })),
+              ]}
+            />
+          </FormField>
+
+          <FormField label="Competitor discussed" htmlFor="meeting-competitor">
+            <FormSelect
+              id="meeting-competitor"
+              value={competitorSupplierId}
+              onValueChange={setCompetitorSupplierId}
+              options={[
+                { value: "__none__", label: "None" },
+                ...suppliers.map((supplier) => ({
+                  value: supplier.id,
+                  label: supplier.name,
+                })),
+              ]}
+            />
+          </FormField>
+
+          <FormField label="Next follow-up" htmlFor="meeting-follow-up" optional>
+            <DatePicker
+              value={nextFollowUpDate}
+              onChange={setNextFollowUpDate}
+              placeholder="Select date"
+            />
+          </FormField>
+        </TabsContent>
+
+        <TabsContent
+          value="attendees"
+          className="mt-4 space-y-4 data-[state=inactive]:hidden"
+        >
           <UserMultiSelect
             id="meeting-our-attendees"
             label="Our attendees"
@@ -467,77 +559,11 @@ export function MeetingLogForm({
                 </div>
               ))}
             </div>
-          ) : null}
-
-          <FormField label="Discussion summary" htmlFor="meeting-summary">
-            <Textarea
-              id="meeting-summary"
-              rows={3}
-              required
-              value={summary}
-              onChange={(e) => setSummary(e.target.value)}
-              placeholder="What was discussed?"
-            />
-          </FormField>
-
-          <FormField label="Key decisions" htmlFor="meeting-decisions">
-            <Textarea
-              id="meeting-decisions"
-              rows={2}
-              value={keyDecisions}
-              onChange={(e) => setKeyDecisions(e.target.value)}
-            />
-          </FormField>
-
-          <FormField label="Confidence updated" htmlFor="meeting-confidence">
-            <FormSelect
-              id="meeting-confidence"
-              value={confidenceUpdated}
-              onValueChange={setConfidenceUpdated}
-              options={[
-                { value: "__none__", label: "No change" },
-                ...CONFIDENCE_FORM_OPTIONS,
-              ]}
-            />
-          </FormField>
-
-          <FormField label="Customer sentiment" htmlFor="meeting-sentiment">
-            <FormSelect
-              id="meeting-sentiment"
-              value={customerSentiment}
-              onValueChange={setCustomerSentiment}
-              options={[
-                { value: "__none__", label: "Not recorded" },
-                ...CUSTOMER_SENTIMENTS.map((sentiment) => ({
-                  value: sentiment,
-                  label: sentiment,
-                })),
-              ]}
-            />
-          </FormField>
-
-          <FormField label="Competitor discussed" htmlFor="meeting-competitor">
-            <FormSelect
-              id="meeting-competitor"
-              value={competitorSupplierId}
-              onValueChange={setCompetitorSupplierId}
-              options={[
-                { value: "__none__", label: "None" },
-                ...suppliers.map((supplier) => ({
-                  value: supplier.id,
-                  label: supplier.name,
-                })),
-              ]}
-            />
-          </FormField>
-
-          <FormField label="Next follow-up" htmlFor="meeting-follow-up">
-            <DatePicker
-              value={nextFollowUpDate}
-              onChange={setNextFollowUpDate}
-              placeholder="Select date"
-            />
-          </FormField>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              No customer attendees added yet.
+            </p>
+          )}
         </TabsContent>
 
         <TabsContent
@@ -632,49 +658,14 @@ export function MeetingLogForm({
           value="attachments"
           className="mt-4 space-y-4 data-[state=inactive]:hidden"
         >
-          <div className="flex flex-wrap items-center gap-2">
-            <Button type="button" variant="outline" size="sm" asChild>
-              <label htmlFor="meeting-attachments" className="cursor-pointer">
-                <Upload className="h-4 w-4" />
-                Upload file
-              </label>
-            </Button>
-            <Input
-              id="meeting-attachments"
-              type="file"
-              className="hidden"
-              onChange={handleAttachmentChange}
-            />
-            <span className="text-xs text-muted-foreground">
-              Photos or documents — optional
-            </span>
-          </div>
-
-          {attachments.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No files attached.</p>
-          ) : (
-            attachments.map((file) => (
-              <div
-                key={file.id}
-                className="flex items-center justify-between rounded-md border px-3 py-2 text-sm"
-              >
-                <span className="truncate">{file.name}</span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={() =>
-                    setAttachments((prev) =>
-                      prev.filter((entry) => entry.id !== file.id)
-                    )
-                  }
-                  aria-label={`Remove ${file.name}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            ))
-          )}
+          <DocumentFilesEditor
+            inputId="meeting-attachments"
+            label="Attachments"
+            value={attachments}
+            onChange={setAttachments}
+            helperText="PDF, DOC, JPG — optional"
+            emptyMessage="No files attached."
+          />
         </TabsContent>
       </Tabs>
 

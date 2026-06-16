@@ -30,10 +30,12 @@ import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { TableActions } from "@/components/shared/table-actions";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
+import { TablePagination } from "@/components/shared/table-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 import { DealSheet } from "@/components/deals/deal-sheet";
 import { ActivitySheet } from "@/components/pipeline/activity-sheet";
 import { ActivityMobileList } from "@/components/pipeline/activity-mobile-list";
-import { LogActivityDialog } from "@/components/pipeline/log-activity-dialog";
+import { LogActivitySheet } from "@/components/pipeline/log-activity-sheet";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -83,6 +85,16 @@ export function ActivityLogView() {
     if (typeFilter === "all") return sorted;
     return sorted.filter((activity) => activity.type === typeFilter);
   }, [dealActivities, deals, typeFilter, currentUser, users]);
+
+  const {
+    paginatedItems,
+    page,
+    totalPages,
+    totalItems,
+    rangeStart,
+    rangeEnd,
+    setPage,
+  } = usePagination(activities, 10, typeFilter);
 
   const openActivity = (activityId: string) => {
     setSelectedActivityId(activityId);
@@ -149,7 +161,7 @@ export function ActivityLogView() {
             </SelectContent>
           </Select>
         }
-        actions={<LogActivityDialog />}
+        actions={<LogActivitySheet />}
       />
 
       {activities.length === 0 ? (
@@ -158,40 +170,54 @@ export function ActivityLogView() {
             icon={ScrollText}
             title="No activity yet"
             description="Log calls, meetings, and visits to keep deals moving."
-            action={<LogActivityDialog />}
+            action={<LogActivitySheet />}
           />
         </div>
       ) : (
-        <ActivityMobileList
-          activities={activities}
-          icons={ACTIVITY_ICONS}
-          customerName={(dealId) => {
-            const deal = deals.find((entry) => entry.id === dealId);
-            return deal ? getCustomerById(deal.customerId)?.name : undefined;
-          }}
-          contactName={(contactId) =>
-            contactId ? getContactById(contactId)?.name : undefined
-          }
-          recordedBy={(userId) => getUserName(users, userId)}
-          assignedTo={(userId) =>
-            userId ? getUserName(users, userId) : undefined
-          }
-          competitorName={(supplierId) =>
-            supplierId ? getSupplierById(supplierId)?.name : undefined
-          }
-          ourAttendeeNames={(userIds) =>
-            userIds
-              ?.map((userId) => getUserName(users, userId))
-              .filter(Boolean)
-              .join(", ")
-          }
-          onOpen={openActivity}
-          onOpenDeal={openDeal}
-          onDelete={deleteDealActivity}
-        />
+        <>
+          <ActivityMobileList
+            activities={paginatedItems}
+            icons={ACTIVITY_ICONS}
+            customerName={(dealId) => {
+              const deal = deals.find((entry) => entry.id === dealId);
+              return deal ? getCustomerById(deal.customerId)?.name : undefined;
+            }}
+            contactName={(contactId) =>
+              contactId ? getContactById(contactId)?.name : undefined
+            }
+            recordedBy={(userId) => getUserName(users, userId)}
+            assignedTo={(userId) =>
+              userId ? getUserName(users, userId) : undefined
+            }
+            competitorName={(supplierId) =>
+              supplierId ? getSupplierById(supplierId)?.name : undefined
+            }
+            ourAttendeeNames={(userIds) =>
+              userIds
+                ?.map((userId) => getUserName(users, userId))
+                .filter(Boolean)
+                .join(", ")
+            }
+            onOpen={openActivity}
+            onOpenDeal={openDeal}
+            onDelete={deleteDealActivity}
+          />
+          {totalItems > 0 ? (
+            <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
+              <TablePagination
+                page={page}
+                totalPages={totalPages}
+                totalItems={totalItems}
+                rangeStart={rangeStart}
+                rangeEnd={rangeEnd}
+                onPageChange={setPage}
+              />
+            </div>
+          ) : null}
+        </>
       )}
 
-      <Card className="hidden shadow-sm md:block">
+      <Card className="hidden overflow-hidden shadow-sm md:block">
           <MobileTableScroll>
             <Table>
               <TableHeader>
@@ -216,13 +242,13 @@ export function ActivityLogView() {
                         icon={ScrollText}
                         title="No activity logged yet"
                         description="Capture customer conversations and field visits as they happen."
-                        action={<LogActivityDialog />}
+                        action={<LogActivitySheet />}
                         className="m-4 border-none bg-transparent shadow-none"
                       />
                     </TableCell>
                   </TableRow>
                 ) : (
-                  activities.map((activity) => {
+                  paginatedItems.map((activity) => {
                     const Icon = ACTIVITY_ICONS[activity.type];
                     const deal = deals.find(
                       (entry) => entry.id === activity.dealId
@@ -293,6 +319,16 @@ export function ActivityLogView() {
               </TableBody>
             </Table>
           </MobileTableScroll>
+          {totalItems > 0 ? (
+            <TablePagination
+              page={page}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              rangeStart={rangeStart}
+              rangeEnd={rangeEnd}
+              onPageChange={setPage}
+            />
+          ) : null}
         </Card>
 
       <ActivitySheet

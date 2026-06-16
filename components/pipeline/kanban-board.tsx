@@ -12,7 +12,6 @@ import {
   KanbanItemHandle,
   KanbanOverlay,
 } from "@/components/reui/kanban";
-import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DealCard } from "./deal-card";
 import { DealSheet } from "@/components/deals/deal-sheet";
@@ -217,45 +216,42 @@ export function KanbanBoard() {
         onDealClick={handleDealClick}
       />
 
-      <div className="hidden overflow-hidden rounded-lg border border-border/60 bg-background md:block">
-        <ScrollArea className="w-full">
-          <Kanban
-            value={columns}
-            onValueChange={handleValueChange}
-            getItemValue={(deal) => deal.id}
-          >
-            <ReuiKanbanBoard className="flex w-max min-w-full gap-3 p-3 sm:grid-cols-none">
-              {pipelineStages.map((stage) => (
-                <PipelineColumn
-                  key={stage.id}
-                  stage={stage}
-                  value={stage.id}
-                  deals={columns[stage.id] ?? []}
-                  onDealClick={handleDealClick}
-                />
-              ))}
-            </ReuiKanbanBoard>
+      <div className="hidden overflow-x-auto rounded-lg border border-border/60 bg-background md:block">
+        <Kanban
+          value={columns}
+          onValueChange={handleValueChange}
+          getItemValue={(deal) => deal.id}
+        >
+          <ReuiKanbanBoard className="flex w-max min-w-full gap-3 p-3 sm:grid-cols-none">
+            {pipelineStages.map((stage) => (
+              <PipelineColumn
+                key={stage.id}
+                stage={stage}
+                value={stage.id}
+                deals={columns[stage.id] ?? []}
+                onDealClick={handleDealClick}
+              />
+            ))}
+          </ReuiKanbanBoard>
 
-            <KanbanOverlay className="rounded-lg border border-dashed border-border bg-muted/30">
-              {({ value, variant }) => {
-                if (variant !== "item") return null;
-                const deal = findDeal(String(value));
-                if (!deal) return null;
+          <KanbanOverlay className="rounded-lg border border-dashed border-border bg-muted/30">
+            {({ value, variant }) => {
+              if (variant !== "item") return null;
+              const deal = findDeal(String(value));
+              if (!deal) return null;
 
-                return (
-                  <div className="w-[17rem]">
-                    <PipelineDealCard
-                      deal={deal}
-                      onDealClick={() => {}}
-                      isOverlay
-                    />
-                  </div>
-                );
-              }}
-            </KanbanOverlay>
-          </Kanban>
-          <ScrollBar orientation="horizontal" />
-        </ScrollArea>
+              return (
+                <div className="w-[17rem]">
+                  <PipelineDealCard
+                    deal={deal}
+                    onDealClick={() => {}}
+                    isOverlay
+                  />
+                </div>
+              );
+            }}
+          </KanbanOverlay>
+        </Kanban>
       </div>
 
       <DealSheet

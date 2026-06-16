@@ -1,8 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
-  Bell,
   Building2,
-  Clock,
   Factory,
   FileText,
   Kanban,
@@ -79,15 +77,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { href: "/contacts", label: "Contacts", icon: Users, mobileTab: true },
       { href: "/products", label: "Products", icon: Package },
       { href: "/suppliers", label: "Suppliers", icon: Factory },
-    ],
-  },
-  {
-    id: "workplace",
-    label: "Workplace",
-    icon: Clock,
-    items: [
-      { href: "/attendance", label: "Attendance", icon: Clock },
-      { href: "/reminders", label: "Reminders", icon: Bell },
     ],
   },
   {
