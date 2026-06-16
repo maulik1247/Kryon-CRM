@@ -32,14 +32,14 @@ export function DueThisWeekCard() {
   today.setHours(0, 0, 0, 0);
 
   return (
-    <Card>
+    <Card className="min-w-0 overflow-hidden">
       <CardHeader className="flex flex-row items-center gap-2">
-        <CalendarClock className="h-4 w-4" />
-        <CardTitle>
+        <CalendarClock className="h-4 w-4 shrink-0" />
+        <CardTitle className="min-w-0 text-base">
           <InfoLabel info={HELP.dueThisWeek}>Due This Week</InfoLabel>
         </CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="min-w-0">
         {tasks.length === 0 ? (
           <EmptyState
             icon={CalendarClock}
@@ -53,7 +53,7 @@ export function DueThisWeekCard() {
             className="border-none bg-transparent py-8 shadow-none"
           />
         ) : (
-          <div className="space-y-3">
+          <div className="max-h-[min(20rem,50vh)] space-y-3 overflow-y-auto overscroll-contain pr-0.5">
             {tasks.map((task) => {
               const dueDate = new Date(`${task.dueDate}T00:00:00`);
               dueDate.setHours(0, 0, 0, 0);
@@ -61,27 +61,28 @@ export function DueThisWeekCard() {
               const isToday = dueDate.getTime() === today.getTime();
 
               return (
-                <Card key={task.id}>
-                  <CardContent className="flex items-start justify-between gap-3 p-3">
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium leading-snug">
-                        {task.title}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {task.customerName} · {task.dealId}
-                      </p>
-                    </div>
-                    <Badge
-                      variant={
-                        isOverdue || isToday ? "default" : "secondary"
-                      }
-                      className="shrink-0 text-xs"
-                    >
-                      {isOverdue && !isToday ? "Overdue · " : ""}
-                      {formatDate(task.dueDate)}
-                    </Badge>
-                  </CardContent>
-                </Card>
+                <div
+                  key={task.id}
+                  className="flex min-w-0 flex-col gap-2 rounded-lg border p-3 sm:flex-row sm:items-start sm:justify-between sm:gap-3"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="line-clamp-2 text-sm font-medium leading-snug">
+                      {task.title}
+                    </p>
+                    <p className="mt-1 truncate text-xs text-muted-foreground">
+                      {task.customerName} · {task.dealId}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={
+                      isOverdue || isToday ? "default" : "secondary"
+                    }
+                    className="w-fit shrink-0 self-start text-xs whitespace-nowrap"
+                  >
+                    {isOverdue && !isToday ? "Overdue · " : ""}
+                    {formatDate(task.dueDate)}
+                  </Badge>
+                </div>
               );
             })}
           </div>

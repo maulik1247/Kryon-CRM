@@ -14,29 +14,37 @@ export function DashboardView() {
 
   if (isAdmin) {
     return (
-      <div className="space-y-6">
+      <div className="min-w-0 space-y-6">
         <KpiCards />
         <PipelineChart />
         <DashboardTasksCard />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <StuckDealsCard />
-          <DueThisWeekCard />
+        <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+          <div className="min-w-0">
+            <StuckDealsCard />
+          </div>
+          <div className="min-w-0">
+            <DueThisWeekCard />
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <KpiCards />
       <div className="grid gap-6 lg:grid-cols-2">
         <PipelineChart />
         <DealConfidenceChart />
       </div>
       <DashboardTasksCard />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <DueThisWeekCard />
-        <MyActivitiesCard />
+      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+        <div className="min-w-0">
+          <DueThisWeekCard />
+        </div>
+        <div className="min-w-0">
+          <MyActivitiesCard />
+        </div>
       </div>
     </div>
   );

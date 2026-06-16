@@ -105,14 +105,24 @@ export function getNavItems(isAdmin: boolean) {
 }
 
 export function getMobileTabItems(isAdmin: boolean) {
-  return getNavItems(isAdmin).filter((item) => item.mobileTab);
+  const items = getNavItems(isAdmin);
+  if (!isAdmin) {
+    return items;
+  }
+  return items.filter((item) => item.mobileTab);
 }
 
 export function getMoreNavItems(isAdmin: boolean) {
+  if (!isAdmin) {
+    return [];
+  }
   return getNavItems(isAdmin).filter((item) => !item.mobileTab);
 }
 
 export function getMoreNavGroups(isAdmin: boolean): NavGroup[] {
+  if (!isAdmin) {
+    return [];
+  }
   return getNavGroups(isAdmin)
     .map((group) => ({
       ...group,

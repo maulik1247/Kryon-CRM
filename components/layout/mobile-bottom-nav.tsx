@@ -27,14 +27,21 @@ export function MobileBottomNav() {
 
   const tabItems = getMobileTabItems(isAdmin);
   const moreGroups = getMoreNavGroups(isAdmin);
-  const moreActive = moreGroups.some((group) =>
-    isNavGroupActive(group, pathname)
-  );
+  const showMore = moreGroups.length > 0;
+  const moreActive = showMore
+    ? moreGroups.some((group) => isNavGroupActive(group, pathname))
+    : false;
+  const columnCount = tabItems.length + (showMore ? 1 : 0);
 
   return (
     <>
       <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md transition-smooth md:hidden">
-        <div className="grid h-16 grid-cols-5">
+        <div
+          className="grid h-16"
+          style={{
+            gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+          }}
+        >
           {tabItems.map((item) => {
             const isActive = isNavItemActive(item.href, pathname);
             const Icon = item.icon;
@@ -56,31 +63,38 @@ export function MobileBottomNav() {
             );
           })}
 
-          <Button
-            type="button"
-            variant="ghost"
-            className={cn(
-              "flex h-full flex-col items-center justify-center gap-1 rounded-none px-1 text-[10px] font-medium",
-              moreActive ? "text-primary" : "text-muted-foreground"
-            )}
-            onClick={() => setMoreOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-            <span>More</span>
-          </Button>
+          {showMore ? (
+            <Button
+              type="button"
+              variant="ghost"
+              className={cn(
+                "flex h-full flex-col items-center justify-center gap-1 rounded-none px-1 text-[10px] font-medium",
+                moreActive ? "text-primary" : "text-muted-foreground"
+              )}
+              onClick={() => setMoreOpen(true)}
+            >
+              <Menu className="h-5 w-5" />
+              <span>More</span>
+            </Button>
+          ) : null}
         </div>
       </nav>
 
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="rounded-t-2xl pb-8">
-          <SheetHeader>
-            <SheetTitle>More</SheetTitle>
-          </SheetHeader>
-          <nav className="mt-4">
-            <NavGroups groups={moreGroups} onNavigate={() => setMoreOpen(false)} />
-          </nav>
-        </SheetContent>
-      </Sheet>
+      {showMore ? (
+        <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl pb-8">
+            <SheetHeader>
+              <SheetTitle>More</SheetTitle>
+            </SheetHeader>
+            <nav className="mt-4">
+              <NavGroups
+                groups={moreGroups}
+                onNavigate={() => setMoreOpen(false)}
+              />
+            </nav>
+          </SheetContent>
+        </Sheet>
+      ) : null}
     </>
   );
 }
