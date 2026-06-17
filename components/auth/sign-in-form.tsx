@@ -45,6 +45,12 @@ export function SignInForm() {
     null
   );
 
+  React.useEffect(() => {
+    if (window.location.search) {
+      router.replace("/sign-in");
+    }
+  }, [router]);
+
   const completeSignIn = React.useCallback(
     async (sessionId: string | null | undefined) => {
       if (!sessionId) {
