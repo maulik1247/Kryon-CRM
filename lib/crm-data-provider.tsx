@@ -174,6 +174,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const { isLoaded: clerkLoaded, isSignedIn, getToken } = useClerkAuth();
   const [isLoading, setIsLoading] = React.useState(false);
   const [loadError, setLoadError] = React.useState<string | null>(null);
+  const hasInitialBootstrapRef = React.useRef(false);
   const [users, setUsers] = React.useState<CrmUser[]>(
     apiEnabled ? [] : DEFAULT_USERS
   );
@@ -218,7 +219,10 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
 
   const refreshBootstrap = React.useCallback(async () => {
     if (!apiEnabled || !isSignedIn) return;
-    setIsLoading(true);
+    const isInitialLoad = !hasInitialBootstrapRef.current;
+    if (isInitialLoad) {
+      setIsLoading(true);
+    }
     setLoadError(null);
     try {
       // Ensure Clerk session cookie is ready before hitting protected APIs.
@@ -237,13 +241,16 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       setMasterData(data.masterData);
       setUsers(data.users);
       setCurrentUser(data.currentUser);
+      hasInitialBootstrapRef.current = true;
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Unknown error";
       setLoadError(message);
       notifyError("Failed to load CRM data", message);
     } finally {
-      setIsLoading(false);
+      if (isInitialLoad) {
+        setIsLoading(false);
+      }
     }
   }, [apiEnabled, isSignedIn, getToken]);
 
@@ -251,6 +258,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     if (!apiEnabled) return;
     if (!clerkLoaded) return;
     if (!isSignedIn) {
+      hasInitialBootstrapRef.current = false;
       setIsLoading(false);
       return;
     }
