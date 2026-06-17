@@ -4,7 +4,6 @@ import * as React from "react";
 import { Sidebar } from "./sidebar";
 import { Header } from "./header";
 import { MobileBottomNav } from "./mobile-bottom-nav";
-import { UserMenu } from "./user-menu";
 import { PageTransition } from "./page-transition";
 import { useReminderUserToast } from "@/components/reminders/use-reminder-user-toast";
 import { cn } from "@/lib/utils";
@@ -49,11 +48,6 @@ export function AppShell({ children, title, subtitle, toolbar }: AppShellProps) 
         </main>
       </div>
       <MobileBottomNav />
-      <div className="fixed bottom-[calc(4.25rem+env(safe-area-inset-bottom))] left-3 z-50 md:hidden">
-        <div className="rounded-xl border bg-card p-1 shadow-md">
-          <UserMenu collapsed />
-        </div>
-      </div>
     </div>
   );
 }

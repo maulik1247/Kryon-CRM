@@ -4,6 +4,7 @@ import { Zap } from "lucide-react";
 import { RemindersMenu } from "@/components/layout/reminders-menu";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { UserMenu } from "@/components/layout/user-menu";
 
 interface HeaderProps {
   title?: string;
@@ -36,6 +37,10 @@ export function Header({ title, subtitle }: HeaderProps) {
           <GlobalSearch />
           <ThemeToggle />
           <RemindersMenu />
+          <UserMenu
+            collapsed
+            className="h-9 w-9 justify-center p-0 md:hidden"
+          />
         </div>
       </div>
     </header>

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/tabs";
 import { useAuth } from "@/lib/auth-provider";
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
+import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
 import { getRoleLabel } from "@/lib/role-permissions";
@@ -36,7 +37,7 @@ import { getManagerOptions } from "@/lib/user-helpers";
 import { UsersAdminMobileList } from "./users-admin-mobile-list";
 import { UserRoleSelect } from "./user-role-select";
 import { RolePermissionsMatrix } from "./role-permissions-matrix";
-import type { UserRole } from "@/lib/types";
+import type { CrmUser, UserRole } from "@/lib/types";
 
 export function UsersAdminTable() {
   const { users, currentUser, addUser, updateUser, removeUser } = useAuth();
@@ -45,6 +46,7 @@ export function UsersAdminTable() {
   const [role, setRole] = React.useState<UserRole>("sales_rep");
   const [reportsToUserId, setReportsToUserId] = React.useState("");
   const [error, setError] = React.useState("");
+  const [userToDelete, setUserToDelete] = React.useState<CrmUser | null>(null);
 
   const managerOptions = React.useMemo(
     () => getManagerOptions(users),
@@ -91,12 +93,19 @@ export function UsersAdminTable() {
     setReportsToUserId("");
   };
 
-  const handleRemove = (userId: string) => {
+  const openDeleteDialog = (userId: string) => {
+    const target = users.find((user) => user.id === userId);
+    if (target) setUserToDelete(target);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!userToDelete) return;
     setError("");
-    const removed = removeUser(userId);
+    const removed = removeUser(userToDelete.id);
     if (!removed) {
       setError("Cannot remove the last active admin.");
     }
+    setUserToDelete(null);
   };
 
   return (
@@ -168,7 +177,7 @@ export function UsersAdminTable() {
                 reportsToUserId: managerId || undefined,
               })
             }
-            onRemove={handleRemove}
+            onRemove={openDeleteDialog}
           />
           {totalItems > 0 ? (
             <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
@@ -254,7 +263,7 @@ export function UsersAdminTable() {
                           size="icon"
                           className="h-8 w-8 text-destructive hover:text-destructive"
                           disabled={user.id === currentUser.id}
-                          onClick={() => handleRemove(user.id)}
+                          onClick={() => openDeleteDialog(user.id)}
                           aria-label={`Remove ${user.name}`}
                         >
                           <Trash2 className="h-4 w-4" />
@@ -285,6 +294,16 @@ export function UsersAdminTable() {
       <TabsContent value="permissions" className="mt-4">
         <RolePermissionsMatrix />
       </TabsContent>
+
+      <DeleteConfirmDialog
+        open={!!userToDelete}
+        onOpenChange={(open) => {
+          if (!open) setUserToDelete(null);
+        }}
+        title="Delete user?"
+        description={`This will permanently remove ${userToDelete?.name ?? "this user"} and revoke their CRM access.`}
+        onConfirm={handleDeleteConfirm}
+      />
     </Tabs>
   );
 }

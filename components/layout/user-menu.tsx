@@ -142,20 +142,34 @@ function ClerkUserMenu({
 
     const rect = button.getBoundingClientRect();
     const menuWidth = 256;
+    const menuHeight = 200;
     const gap = 8;
     const left = Math.min(
-      Math.max(12, rect.left),
+      Math.max(12, rect.right - menuWidth),
       window.innerWidth - menuWidth - 12
     );
-    const bottom = window.innerHeight - rect.top + gap;
 
-    setMenuStyle({
-      position: "fixed",
-      left,
-      bottom,
-      width: menuWidth,
-      zIndex: 300,
-    });
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openBelow =
+      spaceBelow >= menuHeight || spaceBelow >= rect.top - gap;
+
+    setMenuStyle(
+      openBelow
+        ? {
+            position: "fixed",
+            left,
+            top: rect.bottom + gap,
+            width: menuWidth,
+            zIndex: 300,
+          }
+        : {
+            position: "fixed",
+            left,
+            bottom: window.innerHeight - rect.top + gap,
+            width: menuWidth,
+            zIndex: 300,
+          }
+    );
   }, []);
 
   const toggleOpen = () => {
