@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String   @id
+  clerkId         String?  @unique
+  email           String   @unique
+  name            String
+  role            String
+  active          Boolean  @default(true)
+  reportsToUserId String?
+  reportsTo       User?    @relation("UserReportsTo", fields: [reportsToUserId], references: [id], onDelete: SetNull)
+  directReports   User[]   @relation("UserReportsTo")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model AppSettings {
+  id             String @id @default("default")
+  pipelineStages Json
+  masterData     Json
+}
+
+model Customer {
+  id      String @id
+  payload Json
+}
+
+model Contact {
+  id      String @id
+  payload Json
+}
+
+model Product {
+  id      String @id
+  payload Json
+}
+
+model Supplier {
+  id      String @id
+  payload Json
+}
+
+model Deal {
+  id      String @id
+  payload Json
+}
+
+model DealTask {
+  id      String @id
+  payload Json
+}
+
+model DealActivity {
+  id      String @id
+  payload Json
+}
+
+model DocumentExchange {
+  id      String @id
+  payload Json
+}
+
+model CrmReminder {
+  id      String @id
+  payload Json
+}

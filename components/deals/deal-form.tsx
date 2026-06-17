@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
@@ -34,6 +35,7 @@ import { isTaskOpen } from "@/lib/task-constants";
 import { filterCustomersForUser } from "@/lib/user-helpers";
 import { formatCurrency } from "@/lib/utils";
 import { recordListRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import type { ConfidenceLevel, Customer, Deal, DealLineItem } from "@/lib/types";
 
 function createDefaultForm(defaultStageId: string, defaultOwner: string) {
@@ -272,7 +274,7 @@ export function DealForm({ dealId }: DealFormProps) {
           assignerName: currentUser.name,
         });
       });
-      router.push(recordListRoutes.deal);
+      navigateAfterSave(router, recordListRoutes.deal);
       return;
     }
 
@@ -308,7 +310,7 @@ export function DealForm({ dealId }: DealFormProps) {
         assignerName: currentUser.name,
       });
     });
-    router.push(recordListRoutes.deal);
+    navigateAfterSave(router, recordListRoutes.deal);
   };
 
   const handleDelete = () => {
@@ -331,9 +333,11 @@ export function DealForm({ dealId }: DealFormProps) {
       footer={
         <>
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete deal?"
+              description={`This will permanently remove deal ${deal?.id ?? ""}.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}

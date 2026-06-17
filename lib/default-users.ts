@@ -2,6 +2,13 @@ import type { CrmUser } from "./types";
 
 export const DEFAULT_USERS: CrmUser[] = [
   {
+    id: "user-demo",
+    name: "Demo Client",
+    email: "demo@kryon.com",
+    role: "admin",
+    active: true,
+  },
+  {
     id: "user-admin",
     name: "Rajesh Kumar",
     email: "rajesh@kryon.com",

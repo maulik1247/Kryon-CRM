@@ -1,7 +1,6 @@
 "use client";
 
 import { Zap } from "lucide-react";
-import { UserMenu } from "@/components/layout/user-menu";
 import { RemindersMenu } from "@/components/layout/reminders-menu";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
@@ -37,9 +36,6 @@ export function Header({ title, subtitle }: HeaderProps) {
           <GlobalSearch />
           <ThemeToggle />
           <RemindersMenu />
-          <div className="md:hidden">
-            <UserMenu />
-          </div>
         </div>
       </div>
     </header>

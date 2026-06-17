@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
@@ -237,13 +238,11 @@ export function TaskSheet({
             </div>
 
             <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
+              <DeleteRecordButton
+                title="Delete task?"
+                description={`This will permanently remove "${task?.title ?? "this task"}".`}
+                onConfirm={handleDelete}
+              />
               <div className="flex gap-2">
                 <SheetClose asChild>
                   <Button type="button" variant="outline">

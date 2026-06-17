@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
@@ -14,6 +15,7 @@ import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import {
   isValidHsnCode,
   MOTOR_CONTROLLER_TYPES,
@@ -147,7 +149,7 @@ export function ProductForm({ productId }: ProductFormProps) {
           currentUser.id
         )
       );
-      router.push(recordRoutes.product(id));
+      navigateAfterSave(router, recordRoutes.product(id));
       return;
     }
 
@@ -156,7 +158,7 @@ export function ProductForm({ productId }: ProductFormProps) {
       product.id,
       formToProduct({ ...form, hsnCode: hsn }, product.id, product)
     );
-    router.push(recordListRoutes.product);
+    navigateAfterSave(router, recordListRoutes.product);
   };
 
   const handleDelete = () => {
@@ -183,9 +185,11 @@ export function ProductForm({ productId }: ProductFormProps) {
       footer={
         <>
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete product?"
+              description={`This will permanently remove ${product?.sku ?? "this product"}.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}

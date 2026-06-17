@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
@@ -16,6 +17,7 @@ import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import {
   DOCUMENT_DIRECTIONS,
   DOCUMENT_EXCHANGE_STATUSES,
@@ -168,7 +170,7 @@ export function DocumentExchangeForm({ recordId }: DocumentExchangeFormProps) {
           new Date().toISOString()
         )
       );
-      router.push(recordRoutes.document(id));
+      navigateAfterSave(router, recordRoutes.document(id));
       return;
     }
 
@@ -177,13 +179,13 @@ export function DocumentExchangeForm({ recordId }: DocumentExchangeFormProps) {
       record.id,
       formToRecord(form, record.id, record.createdByUserId, record.createdAt)
     );
-    router.push(recordListRoutes.document);
+    navigateAfterSave(router, recordListRoutes.document);
   };
 
   const handleDelete = () => {
     if (!record) return;
     deleteDocumentExchange(record.id);
-    router.push(recordListRoutes.document);
+    navigateAfterSave(router, recordListRoutes.document);
   };
 
   if (!isAdd && !record) {
@@ -204,9 +206,11 @@ export function DocumentExchangeForm({ recordId }: DocumentExchangeFormProps) {
       footer={
         <>
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete document?"
+              description={`This will permanently remove this ${record?.documentType ?? "document"} record.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}

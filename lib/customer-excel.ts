@@ -1,4 +1,3 @@
-import * as XLSX from "xlsx";
 import {
   ANNUAL_REVENUE_RANGES,
   formatLeadDate,
@@ -44,13 +43,15 @@ export const CUSTOMER_EXCEL_HEADERS = [
   "Notes",
 ] as const;
 
-function excelValueToString(value: unknown): string {
+type XlsxModule = typeof import("xlsx");
+
+function excelValueToString(value: unknown, xlsx?: XlsxModule): string {
   if (value === null || value === undefined) return "";
   if (value instanceof Date) {
     return value.toISOString().split("T")[0] ?? "";
   }
-  if (typeof value === "number" && XLSX.SSF.is_date(value)) {
-    const parsed = XLSX.SSF.parse_date_code(value);
+  if (typeof value === "number" && xlsx?.SSF.is_date(value)) {
+    const parsed = xlsx.SSF.parse_date_code(value);
     if (parsed) {
       const month = String(parsed.m).padStart(2, "0");
       const day = String(parsed.d).padStart(2, "0");
@@ -107,98 +108,100 @@ function pickEnum<T extends string>(
 function rowToCustomer(
   row: Record<string, unknown>,
   rowIndex: number,
-  masterData: MasterDataLists
+  masterData: MasterDataLists,
+  xlsx: XlsxModule
 ): { customer?: Customer; error?: string } {
-  const name = excelValueToString(row["Customer / Company Name"]);
+  const cell = (value: unknown) => excelValueToString(value, xlsx);
+  const name = cell(row["Customer / Company Name"]);
   if (!name) {
     return { error: `Row ${rowIndex}: Customer / Company Name is required.` };
   }
 
-  const gstin = excelValueToString(row.GSTIN).toUpperCase();
+  const gstin = cell(row.GSTIN).toUpperCase();
   if (gstin && !isValidGstin(gstin)) {
     return { error: `Row ${rowIndex}: Invalid GSTIN for "${name}".` };
   }
 
   const vendorStatus = pickEnum<VendorStatus>(
-    excelValueToString(row["Vendor Registration Status"]),
+    cell(row["Vendor Registration Status"]),
     VENDOR_STATUSES,
     "Not Started"
   );
   const vendorCode =
     vendorStatus === "Approved"
-      ? excelValueToString(row["Vendor Code"])
+      ? cell(row["Vendor Code"])
       : "";
 
   const docNames = splitList(
-    excelValueToString(row["Registration Documents"])
+    cell(row["Registration Documents"])
   );
 
   const customer: Customer = {
     id: `cust-import-${Date.now()}-${rowIndex}`,
     name,
     oemSegment: pickEnum<OemSegment>(
-      excelValueToString(row["OEM Segment"]),
+      cell(row["OEM Segment"]),
       masterData.oemSegments,
       masterData.oemSegments.includes("Other")
         ? "Other"
         : (masterData.oemSegments[0] ?? "Other")
     ),
     leadSource: pickEnum<LeadSource>(
-      excelValueToString(row["Lead Source"]),
+      cell(row["Lead Source"]),
       masterData.leadSources,
       masterData.leadSources.includes("Other")
         ? "Other"
         : (masterData.leadSources[0] ?? "Other")
     ),
     leadDate:
-      excelValueToString(row["Lead Date"]) || formatLeadDate(),
+      cell(row["Lead Date"]) || formatLeadDate(),
     plantLocations: splitList(
-      excelValueToString(row["Plant Location(s)"])
+      cell(row["Plant Location(s)"])
     ),
-    productionCapacity: excelValueToString(
+    productionCapacity: cell(
       row["Production Capacity (units/yr)"]
     ),
     annualRevenueRange: pickEnum<AnnualRevenueRange>(
-      excelValueToString(row["Annual Revenue Range"]),
+      cell(row["Annual Revenue Range"]),
       ANNUAL_REVENUE_RANGES,
       "< 100 Cr"
     ),
     gstin,
-    websiteUrl: excelValueToString(row["Website URL"]),
-    registeredOfficeAddress: excelValueToString(
+    websiteUrl: cell(row["Website URL"]),
+    registeredOfficeAddress: cell(
       row["Registered Office Address"]
     ),
-    factoryAddress: excelValueToString(row["Factory / Plant Address"]),
+    factoryAddress: cell(row["Factory / Plant Address"]),
     vendorStatus,
-    registrationFormSubmittedDate: excelValueToString(
+    registrationFormSubmittedDate: cell(
       row["Registration Form Submitted Date"]
     ),
-    expectedApprovalDate: excelValueToString(row["Expected Approval Date"]),
+    expectedApprovalDate: cell(row["Expected Approval Date"]),
     vendorCode,
     registrationDocuments: docNames.map((docName, index) => ({
       id: `doc-import-${rowIndex}-${index}`,
       name: docName,
     })),
-    registrationRemarks: excelValueToString(row["Registration Remarks"]),
+    registrationRemarks: cell(row["Registration Remarks"]),
     priority: pickEnum<Priority>(
-      excelValueToString(row.Priority),
+      cell(row.Priority),
       ["A", "B", "C"],
       "B"
     ),
     accountOwner: pickEnum(
-      excelValueToString(row["Account Owner"]),
+      cell(row["Account Owner"]),
       masterData.accountOwners,
       masterData.accountOwners[0] ?? ""
     ),
     tier: pickEnum<Tier>(
-      excelValueToString(row["Customer Tier"]),
+      cell(row["Customer Tier"]),
       TIERS,
       "Tier 2"
     ),
-    estimatedAnnualPotential: excelValueToString(
+    estimatedAnnualPotential: cell(
       row["Estimated Annual Potential (INR)"]
     ),
-    notes: excelValueToString(row.Notes),
+    notes: cell(row.Notes),
     customerProducts: [],
     createdAt: new Date().toISOString(),
     createdByUserId: DEFAULT_CURRENT_USER_ID,
@@ -207,7 +210,13 @@ function rowToCustomer(
   return { customer };
 }
 
-export function downloadCustomersExcel(customers: Customer[]): void {
+async function loadXlsx() {
+  const XLSX = await import("xlsx");
+  return XLSX;
+}
+
+export async function downloadCustomersExcel(customers: Customer[]): Promise<void> {
+  const XLSX = await loadXlsx();
   const rows = customers.map(customerToRow);
   const worksheet = XLSX.utils.json_to_sheet(rows, {
     header: [...CUSTOMER_EXCEL_HEADERS],
@@ -229,6 +238,7 @@ export async function parseCustomersExcelFile(
   file: File,
   masterData: MasterDataLists = DEFAULT_MASTER_DATA
 ): Promise<CustomerImportResult> {
+  const XLSX = await loadXlsx();
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: "array", cellDates: true });
   const sheetName = workbook.SheetNames[0];
@@ -250,7 +260,7 @@ export async function parseCustomersExcelFile(
   const errors: string[] = [];
 
   rows.forEach((row, index) => {
-    const result = rowToCustomer(row, index + 2, masterData);
+    const result = rowToCustomer(row, index + 2, masterData, XLSX);
     if (result.error) {
       errors.push(result.error);
       return;

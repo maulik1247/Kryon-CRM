@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
@@ -24,6 +25,7 @@ import {
   getUserName,
 } from "@/lib/user-helpers";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import type { DealActivity, DealActivityType } from "@/lib/types";
 
 interface SimpleActivityFormState {
@@ -165,17 +167,17 @@ export function ActivityForm({ activityId, defaultDealId }: ActivityFormProps) {
       recorderName: currentUser.name,
     });
 
-    router.push(recordListRoutes.activity);
+    navigateAfterSave(router, recordListRoutes.activity);
   };
 
   const handleDelete = () => {
     if (!activity) return;
     deleteDealActivity(activity.id);
-    router.push(recordListRoutes.activity);
+    navigateAfterSave(router, recordListRoutes.activity);
   };
 
   const handleMeetingSaved = () => {
-    router.push(recordListRoutes.activity);
+    navigateAfterSave(router, recordListRoutes.activity);
   };
 
   const viewDeal = (dealId: string) => {
@@ -219,9 +221,11 @@ export function ActivityForm({ activityId, defaultDealId }: ActivityFormProps) {
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete activity?"
+              description={`This will permanently remove this activity log entry.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}
@@ -247,9 +251,11 @@ export function ActivityForm({ activityId, defaultDealId }: ActivityFormProps) {
       onSubmit={handleSimpleSubmit}
       footer={
         <>
-          <Button type="button" variant="destructive" onClick={handleDelete}>
-            Delete
-          </Button>
+          <DeleteRecordButton
+            title="Delete activity?"
+            description="This will permanently remove this activity log entry."
+            onConfirm={handleDelete}
+          />
           <div className="flex gap-2">
             <Button type="button" variant="outline" asChild>
               <Link href={recordListRoutes.activity}>Cancel</Link>

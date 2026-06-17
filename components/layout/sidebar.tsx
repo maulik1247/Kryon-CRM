@@ -21,7 +21,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 hidden h-screen flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-smooth-out md:flex",
+        "fixed left-0 top-0 z-50 hidden h-screen flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-300 ease-smooth-out md:flex",
         collapsed ? "w-[68px]" : "w-60"
       )}
     >
@@ -69,8 +69,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
       </nav>
 
       <Separator />
-      <div className={cn("shrink-0 p-3", collapsed && "px-2")}>
-        <UserMenu variant="sidebar" collapsed={collapsed} />
+      <div className={cn("relative z-20 shrink-0 p-3", collapsed && "px-2")}>
+        <UserMenu collapsed={collapsed} />
       </div>
     </aside>
   );

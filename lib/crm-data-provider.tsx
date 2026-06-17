@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { useAuth as useClerkAuth } from "@clerk/nextjs";
 import {
   customers as initialCustomers,
   contacts as initialContacts,
@@ -12,6 +13,10 @@ import {
   reminders as initialReminders,
   documentExchanges as initialDocumentExchanges,
 } from "@/lib/mock-data";
+import { crmClient } from "@/lib/api/crm-client";
+import { isCrmApiEnabled } from "@/lib/crm-api";
+import { fireCrmApi } from "@/lib/crm-api-sync";
+import { DEFAULT_USERS } from "@/lib/default-users";
 import {
   createDealActivityId,
   createDealTaskId,
@@ -32,6 +37,7 @@ import {
   notifyInfo,
   notifyUpdated,
 } from "@/lib/crm-notifications";
+import { CrmBootstrapLoader } from "@/components/crm/crm-bootstrap-loader";
 import type {
   Customer,
   Contact,
@@ -43,6 +49,7 @@ import type {
   TaskStatus,
   CrmReminder,
   CrmReminderKind,
+  CrmUser,
   MasterDataListKey,
   MasterDataLists,
   PipelineStage,
@@ -51,6 +58,10 @@ import type {
 } from "@/lib/types";
 
 interface CrmDataContextValue {
+  isLoading: boolean;
+  users: CrmUser[];
+  currentUser: CrmUser;
+  refreshBootstrap: () => Promise<void>;
   customers: Customer[];
   contacts: Contact[];
   products: Product[];
@@ -138,6 +149,14 @@ interface CrmDataContextValue {
   getDocumentExchangesByCustomerId: (customerId: string) => DocumentExchange[];
 }
 
+const PENDING_USER: CrmUser = {
+  id: "pending",
+  name: "Loading…",
+  email: "",
+  role: "sales_rep",
+  active: true,
+};
+
 const CrmDataContext = React.createContext<CrmDataContextValue | null>(null);
 
 function normalizeDeals(
@@ -151,25 +170,92 @@ function normalizeDeals(
 }
 
 export function CrmDataProvider({ children }: { children: React.ReactNode }) {
+  const apiEnabled = isCrmApiEnabled();
+  const { isLoaded: clerkLoaded, isSignedIn, getToken } = useClerkAuth();
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [loadError, setLoadError] = React.useState<string | null>(null);
+  const [users, setUsers] = React.useState<CrmUser[]>(
+    apiEnabled ? [] : DEFAULT_USERS
+  );
+  const [currentUser, setCurrentUser] = React.useState<CrmUser | null>(
+    apiEnabled ? null : DEFAULT_USERS[0]
+  );
   const [pipelineStages, setPipelineStages] = React.useState(
-    DEFAULT_PIPELINE_STAGES
+    apiEnabled ? [] : DEFAULT_PIPELINE_STAGES
   );
-  const [masterData, setMasterData] =
-    React.useState<MasterDataLists>(DEFAULT_MASTER_DATA);
-  const [customers, setCustomers] = React.useState(initialCustomers);
-  const [contacts, setContacts] = React.useState(initialContacts);
-  const [products, setProducts] = React.useState(initialProducts);
-  const [suppliers, setSuppliers] = React.useState(initialSuppliers);
-  const [deals, setDeals] = React.useState(() =>
-    normalizeDeals(initialDeals, DEFAULT_PIPELINE_STAGES)
+  const [masterData, setMasterData] = React.useState<MasterDataLists>(
+    apiEnabled ? { oemSegments: [], leadSources: [], accountOwners: [], productTypes: [] } : DEFAULT_MASTER_DATA
   );
-  const [dealTasks, setDealTasks] = React.useState(initialDealTasks);
-  const [dealActivities, setDealActivities] =
-    React.useState(initialDealActivities);
+  const [customers, setCustomers] = React.useState(
+    apiEnabled ? [] : initialCustomers
+  );
+  const [contacts, setContacts] = React.useState(
+    apiEnabled ? [] : initialContacts
+  );
+  const [products, setProducts] = React.useState(
+    apiEnabled ? [] : initialProducts
+  );
+  const [suppliers, setSuppliers] = React.useState(
+    apiEnabled ? [] : initialSuppliers
+  );
+  const [deals, setDeals] = React.useState<Deal[]>(() =>
+    apiEnabled
+      ? []
+      : normalizeDeals(initialDeals, DEFAULT_PIPELINE_STAGES)
+  );
+  const [dealTasks, setDealTasks] = React.useState(
+    apiEnabled ? [] : initialDealTasks
+  );
+  const [dealActivities, setDealActivities] = React.useState(
+    apiEnabled ? [] : initialDealActivities
+  );
   const [documentExchanges, setDocumentExchanges] = React.useState(
-    initialDocumentExchanges
+    apiEnabled ? [] : initialDocumentExchanges
   );
-  const [reminders, setReminders] = React.useState(initialReminders);
+  const [reminders, setReminders] = React.useState(
+    apiEnabled ? [] : initialReminders
+  );
+
+  const refreshBootstrap = React.useCallback(async () => {
+    if (!apiEnabled || !isSignedIn) return;
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      // Ensure Clerk session cookie is ready before hitting protected APIs.
+      await getToken();
+      const data = await crmClient.bootstrap();
+      setCustomers(data.customers);
+      setContacts(data.contacts);
+      setProducts(data.products);
+      setSuppliers(data.suppliers);
+      setDeals(data.deals);
+      setDealTasks(data.dealTasks);
+      setDealActivities(data.dealActivities);
+      setDocumentExchanges(data.documentExchanges);
+      setReminders(data.reminders);
+      setPipelineStages(data.pipelineStages);
+      setMasterData(data.masterData);
+      setUsers(data.users);
+      setCurrentUser(data.currentUser);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Unknown error";
+      setLoadError(message);
+      notifyError("Failed to load CRM data", message);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [apiEnabled, isSignedIn, getToken]);
+
+  React.useEffect(() => {
+    if (!apiEnabled) return;
+    if (!clerkLoaded) return;
+    if (!isSignedIn) {
+      setIsLoading(false);
+      return;
+    }
+    void refreshBootstrap();
+  }, [apiEnabled, clerkLoaded, isSignedIn, refreshBootstrap]);
 
   const pushReminder = React.useCallback(
     (reminder: Omit<CrmReminder, "id" | "createdAt" | "readAt">) => {
@@ -259,6 +345,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const addCustomer = React.useCallback((customer: Customer) => {
     setCustomers((prev) => [...prev, customer]);
     notifyCreated("Customer", customer.name);
+    fireCrmApi("customer", () => crmClient.upsertCustomer(customer));
   }, []);
 
   const updateCustomer = React.useCallback(
@@ -278,6 +365,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       if (customerName) {
         notifyUpdated("Customer", customerName);
       }
+      fireCrmApi("customer", () =>
+        crmClient.updateCustomer(customerId, updates)
+      );
     },
     []
   );
@@ -332,6 +422,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
 
       setCustomers((prev) => prev.filter((c) => c.id !== customerId));
       notifyDeleted("Customer", customer?.name);
+      fireCrmApi("customer", () => crmClient.deleteCustomer(customerId));
       return true;
     },
     [contacts, deals, customers]
@@ -350,6 +441,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       return [...prev, contact];
     });
     notifyCreated("Contact", contact.name);
+    fireCrmApi("contact", () => crmClient.upsertContact(contact));
   }, []);
 
   const updateContact = React.useCallback(
@@ -381,6 +473,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       if (contactName) {
         notifyUpdated("Contact", contactName);
       }
+      fireCrmApi("contact", () =>
+        crmClient.updateContact(contactId, updates)
+      );
     },
     []
   );
@@ -399,6 +494,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
 
       setContacts((prev) => prev.filter((c) => c.id !== contactId));
       notifyDeleted("Contact", contact?.name);
+      fireCrmApi("contact", () => crmClient.deleteContact(contactId));
       return true;
     },
     [deals, contacts]
@@ -407,6 +503,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const addProduct = React.useCallback((product: Product) => {
     setProducts((prev) => [...prev, product]);
     notifyCreated("Product", product.model);
+    fireCrmApi("product", () => crmClient.upsertProduct(product));
   }, []);
 
   const updateProduct = React.useCallback(
@@ -426,6 +523,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       if (productName) {
         notifyUpdated("Product", productName);
       }
+      fireCrmApi("product", () =>
+        crmClient.updateProduct(productId, updates)
+      );
     },
     []
   );
@@ -446,6 +546,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
 
       setProducts((prev) => prev.filter((p) => p.id !== productId));
       notifyDeleted("Product", product?.model);
+      fireCrmApi("product", () => crmClient.deleteProduct(productId));
       return true;
     },
     [deals, products]
@@ -454,6 +555,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const addSupplier = React.useCallback((supplier: Supplier) => {
     setSuppliers((prev) => [...prev, supplier]);
     notifyCreated("Supplier", supplier.name);
+    fireCrmApi("supplier", () => crmClient.upsertSupplier(supplier));
   }, []);
 
   const updateSupplier = React.useCallback(
@@ -473,6 +575,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       if (supplierName) {
         notifyUpdated("Supplier", supplierName);
       }
+      fireCrmApi("supplier", () =>
+        crmClient.updateSupplier(supplierId, updates)
+      );
     },
     []
   );
@@ -498,6 +603,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
 
       setSuppliers((prev) => prev.filter((entry) => entry.id !== supplierId));
       notifyDeleted("Supplier", supplier?.name);
+      fireCrmApi("supplier", () => crmClient.deleteSupplier(supplierId));
       return true;
     },
     [customers, suppliers]
@@ -506,6 +612,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   const addDeal = React.useCallback((deal: Deal) => {
     setDeals((prev) => [...prev, deal]);
     notifyCreated("Deal", deal.id);
+    fireCrmApi("deal", () => crmClient.createDeal(deal));
   }, []);
 
   const updateDeal = React.useCallback(
@@ -541,6 +648,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
         })
       );
       notifyUpdated("Deal", dealId);
+      fireCrmApi("deal", () => crmClient.updateDeal(dealId, updates));
     },
     []
   );
@@ -564,6 +672,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
         )
       );
       notifyDeleted("Deal", dealId);
+      fireCrmApi("deal", () => crmClient.deleteDeal(dealId));
       return true;
     },
     [deals]
@@ -585,6 +694,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
         )
       );
       notifyUpdated("Deal stage", dealId);
+      fireCrmApi("deal", () => crmClient.moveDealToStage(dealId, stage));
     },
     []
   );
@@ -640,6 +750,21 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       }
 
       notifyCreated("Task", trimmed);
+      if (taskId) {
+        fireCrmApi("task", () =>
+          crmClient.createTask({
+            ...task,
+            id: taskId,
+            title: trimmed,
+            status,
+            createdAt: new Date().toISOString(),
+            completedAt:
+              status === "completed"
+                ? new Date().toISOString().split("T")[0]
+                : undefined,
+          })
+        );
+      }
     },
     [pushReminder]
   );
@@ -740,6 +865,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
           notifyUpdated("Task", taskTitle);
         }
       }
+      fireCrmApi("task", () => crmClient.updateTask(taskId, updates));
     },
     [pushReminder]
   );
@@ -776,6 +902,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       if (taskTitle) {
         notifyUpdated("Task", `${taskTitle} (${getTaskStatusLabel(status)})`);
       }
+      fireCrmApi("task", () => crmClient.updateTaskStatus(taskId, status));
     },
     []
   );
@@ -792,6 +919,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       prev.filter((reminder) => reminder.taskId !== taskId)
     );
     notifyDeleted("Task", taskTitle);
+    fireCrmApi("task", () => crmClient.deleteTask(taskId));
   }, []);
 
   const addDealActivity = React.useCallback(
@@ -845,6 +973,16 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       }
 
       notifyCreated("Activity logged");
+      if (activityId) {
+        fireCrmApi("activity", () =>
+          crmClient.upsertActivity({
+            ...activity,
+            id: activityId,
+            summary: trimmed,
+            createdAt: new Date().toISOString(),
+          })
+        );
+      }
     },
     [pushReminder, touchDealLastActivity]
   );
@@ -928,6 +1066,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       }
 
       notifyUpdated("Activity");
+      fireCrmApi("activity", () =>
+        crmClient.updateActivity(activityId, updates)
+      );
     },
     [pushReminder, touchDealLastActivity]
   );
@@ -940,11 +1081,13 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       prev.filter((reminder) => reminder.activityId !== activityId)
     );
     notifyDeleted("Activity");
+    fireCrmApi("activity", () => crmClient.deleteActivity(activityId));
   }, []);
 
   const addDocumentExchange = React.useCallback((record: DocumentExchange) => {
     setDocumentExchanges((prev) => [...prev, record]);
     notifyCreated("Document", record.documentType);
+    fireCrmApi("document", () => crmClient.upsertDocument(record));
   }, []);
 
   const updateDocumentExchange = React.useCallback(
@@ -955,6 +1098,9 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
         )
       );
       notifyUpdated("Document");
+      fireCrmApi("document", () =>
+        crmClient.updateDocument(recordId, updates)
+      );
     },
     []
   );
@@ -964,6 +1110,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       prev.filter((record) => record.id !== recordId)
     );
     notifyDeleted("Document");
+    fireCrmApi("document", () => crmClient.deleteDocument(recordId));
   }, []);
 
   const markReminderRead = React.useCallback((reminderId: string) => {
@@ -973,6 +1120,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
         reminder.id === reminderId ? { ...reminder, readAt: now } : reminder
       )
     );
+    fireCrmApi("reminder", () => crmClient.markReminderRead(reminderId));
   }, []);
 
   const markAllRemindersRead = React.useCallback((userId: string) => {
@@ -984,6 +1132,7 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
           : reminder
       )
     );
+    fireCrmApi("reminders", () => crmClient.markAllRemindersRead());
   }, []);
 
   const addPipelineStage = React.useCallback((name: string, color: string) => {
@@ -1118,6 +1267,10 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
 
   const value = React.useMemo(
     () => ({
+      isLoading,
+      users,
+      currentUser: currentUser ?? PENDING_USER,
+      refreshBootstrap,
       customers,
       contacts,
       products,
@@ -1177,6 +1330,10 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
       getDocumentExchangesByCustomerId,
     }),
     [
+      isLoading,
+      users,
+      currentUser,
+      refreshBootstrap,
       customers,
       contacts,
       products,
@@ -1237,8 +1394,39 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     ]
   );
 
+  const showBootstrapLoading =
+    apiEnabled && clerkLoaded && Boolean(isSignedIn) && isLoading;
+
+  const showBootstrapError =
+    apiEnabled && clerkLoaded && Boolean(isSignedIn) && !isLoading && loadError;
+
   return (
-    <CrmDataContext.Provider value={value}>{children}</CrmDataContext.Provider>
+    <CrmDataContext.Provider value={value}>
+      <CrmBootstrapLoader loading={showBootstrapLoading} />
+      {showBootstrapLoading ? null : showBootstrapError ? (
+        <div className="flex min-h-screen items-center justify-center bg-background p-6">
+          <div className="max-w-md space-y-4 text-center">
+            <h2 className="text-lg font-semibold">Could not load CRM data</h2>
+            <p className="text-sm text-muted-foreground">{loadError}</p>
+            {loadError?.includes("pending approval") ? (
+              <p className="text-sm text-muted-foreground">
+                Sign in with a seeded team email (e.g. rajesh@kryon.com) or ask
+                an admin to activate your account.
+              </p>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => void refreshBootstrap()}
+              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+            >
+              Try again
+            </button>
+          </div>
+        </div>
+      ) : (
+        children
+      )}
+    </CrmDataContext.Provider>
   );
 }
 

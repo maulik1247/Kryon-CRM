@@ -23,6 +23,7 @@ import {
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { TableActions } from "@/components/shared/table-actions";
+import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
@@ -38,7 +39,7 @@ import { getAllTasksSorted } from "@/lib/deal-helpers";
 import { isTaskOpen, TASK_STATUS_OPTIONS } from "@/lib/task-constants";
 import { filterTasksForUser, canUserAccessTask, getUserName } from "@/lib/user-helpers";
 import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
-import type { TaskStatus } from "@/lib/types";
+import type { DealTask, TaskStatus } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
 
 type TaskFilter = "open" | "completed" | "all";
@@ -56,6 +57,7 @@ export function TasksView() {
   const { goToTask, goToDeal } = useRecordNavigation();
 
   const [filter, setFilter] = React.useState<TaskFilter>("open");
+  const [deleteTask, setDeleteTask] = React.useState<DealTask | null>(null);
 
   const tasks = React.useMemo(() => {
     const visible = filterTasksForUser(dealTasks, currentUser, users, deals);
@@ -166,7 +168,7 @@ export function TasksView() {
             onOpenTask={goToTask}
             onOpenDeal={openDeal}
             onStatusChange={updateDealTaskStatus}
-            onDelete={(task) => deleteDealTask(task.id)}
+            onDelete={setDeleteTask}
             openOnTap
           />
           {totalItems > 0 ? (
@@ -318,7 +320,7 @@ export function TasksView() {
                       >
                         <TableActions
                           onEdit={() => goToTask(task.id)}
-                          onDelete={() => deleteDealTask(task.id)}
+                          onDelete={() => setDeleteTask(task)}
                         />
                       </TableCell>
                     </TableRow>
@@ -339,6 +341,20 @@ export function TasksView() {
           />
         ) : null}
       </Card>
+
+      <DeleteConfirmDialog
+        open={!!deleteTask}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTask(null);
+        }}
+        title="Delete task?"
+        description={`This will permanently remove "${deleteTask?.title ?? "this task"}".`}
+        onConfirm={() => {
+          if (!deleteTask) return;
+          deleteDealTask(deleteTask.id);
+          setDeleteTask(null);
+        }}
+      />
     </>
   );
 }

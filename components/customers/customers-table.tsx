@@ -101,7 +101,7 @@ export function CustomersTable() {
             <Button
               type="button"
               variant="outline"
-              onClick={() => downloadCustomersExcel(customers)}
+              onClick={() => void downloadCustomersExcel(customers)}
             >
               <Download className="h-4 w-4" />
               Export Excel

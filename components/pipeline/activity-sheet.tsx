@@ -3,6 +3,7 @@
 import * as React from "react";
 import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Sheet,
@@ -203,13 +204,11 @@ export function ActivitySheet({
                 />
               </div>
               <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                >
-                  Delete
-                </Button>
+                <DeleteRecordButton
+                  title="Delete activity?"
+                  description="This will permanently remove this activity log entry."
+                  onConfirm={handleDelete}
+                />
                 <div className="flex gap-2">
                   <SheetClose asChild>
                     <Button type="button" variant="outline">
@@ -331,13 +330,11 @@ export function ActivitySheet({
               </div>
 
               <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleDelete}
-                >
-                  Delete
-                </Button>
+                <DeleteRecordButton
+                  title="Delete activity?"
+                  description="This will permanently remove this activity log entry."
+                  onConfirm={handleDelete}
+                />
                 <div className="flex gap-2">
                   <SheetClose asChild>
                     <Button type="button" variant="outline">

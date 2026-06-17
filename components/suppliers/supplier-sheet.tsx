@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -182,13 +183,11 @@ export function SupplierSheet({
 
           <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
             {!isAdd ? (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
+              <DeleteRecordButton
+                title="Delete supplier?"
+                description={`This will permanently remove ${supplier?.name ?? "this supplier"}.`}
+                onConfirm={handleDelete}
+              />
             ) : (
               <span />
             )}

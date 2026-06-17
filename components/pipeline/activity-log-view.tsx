@@ -31,6 +31,7 @@ import {
 import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { TableActions } from "@/components/shared/table-actions";
+import { DeleteConfirmDialog } from "@/components/shared/delete-confirm-dialog";
 import { EmptyState } from "@/components/shared/empty-state";
 import { PageToolbar } from "@/components/shared/page-toolbar";
 import { TablePagination } from "@/components/shared/table-pagination";
@@ -74,6 +75,9 @@ export function ActivityLogView() {
 
   const [typeFilter, setTypeFilter] = React.useState<DealActivityType | "all">(
     "all"
+  );
+  const [deleteActivityId, setDeleteActivityId] = React.useState<string | null>(
+    null
   );
 
   const activities = React.useMemo(() => {
@@ -198,7 +202,7 @@ export function ActivityLogView() {
             }
             onOpen={goToActivity}
             onOpenDeal={openDeal}
-            onDelete={deleteDealActivity}
+            onDelete={setDeleteActivityId}
           />
           {totalItems > 0 ? (
             <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
@@ -318,7 +322,7 @@ export function ActivityLogView() {
                         >
                           <TableActions
                             onEdit={() => goToActivity(activity.id)}
-                            onDelete={() => deleteDealActivity(activity.id)}
+                            onDelete={() => setDeleteActivityId(activity.id)}
                           />
                         </TableCell>
                       </TableRow>
@@ -339,6 +343,20 @@ export function ActivityLogView() {
             />
           ) : null}
         </Card>
+
+      <DeleteConfirmDialog
+        open={!!deleteActivityId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteActivityId(null);
+        }}
+        title="Delete activity?"
+        description="This will permanently remove this activity log entry."
+        onConfirm={() => {
+          if (!deleteActivityId) return;
+          deleteDealActivity(deleteActivityId);
+          setDeleteActivityId(null);
+        }}
+      />
     </>
   );
 }

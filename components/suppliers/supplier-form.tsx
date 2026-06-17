@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
@@ -12,6 +13,7 @@ import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import { SUPPLIER_TYPES } from "@/lib/supplier-constants";
 import type { Supplier, SupplierType } from "@/lib/types";
 
@@ -94,13 +96,13 @@ export function SupplierForm({ supplierId }: SupplierFormProps) {
       addSupplier(
         formToSupplier(form, id, undefined, currentUser.id)
       );
-      router.push(recordRoutes.supplier(id));
+      navigateAfterSave(router, recordRoutes.supplier(id));
       return;
     }
 
     if (!supplier) return;
     updateSupplier(supplier.id, formToSupplier(form, supplier.id, supplier));
-    router.push(recordListRoutes.supplier);
+    navigateAfterSave(router, recordListRoutes.supplier);
   };
 
   const handleDelete = () => {
@@ -127,9 +129,11 @@ export function SupplierForm({ supplierId }: SupplierFormProps) {
       footer={
         <>
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete supplier?"
+              description={`This will permanently remove ${supplier?.name ?? "this supplier"}.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}

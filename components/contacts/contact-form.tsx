@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -14,6 +15,7 @@ import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import {
   BUYING_ROLES,
   CONTACT_DEPARTMENTS,
@@ -140,13 +142,13 @@ export function ContactForm({ contactId }: ContactFormProps) {
       addContact(
         formToContact(form, id, undefined, currentUser.id)
       );
-      router.push(recordRoutes.contact(id));
+      navigateAfterSave(router, recordRoutes.contact(id));
       return;
     }
 
     if (!contact) return;
     updateContact(contact.id, formToContact(form, contact.id, contact));
-    router.push(recordListRoutes.contact);
+    navigateAfterSave(router, recordListRoutes.contact);
   };
 
   const handleDelete = () => {
@@ -178,9 +180,11 @@ export function ContactForm({ contactId }: ContactFormProps) {
       footer={
         <>
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete contact?"
+              description={`This will permanently remove ${contact?.name ?? "this contact"}.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}

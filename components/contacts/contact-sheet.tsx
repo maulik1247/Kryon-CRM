@@ -11,6 +11,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -373,13 +374,11 @@ export function ContactSheet({
 
           <SheetFooter className="shrink-0 border-t px-6 py-4 sm:justify-between">
             {!isAdd ? (
-              <Button
-                type="button"
-                variant="destructive"
-                onClick={handleDelete}
-              >
-                Delete
-              </Button>
+              <DeleteRecordButton
+                title="Delete contact?"
+                description={`This will permanently remove ${contact?.name ?? "this contact"}.`}
+                onConfirm={handleDelete}
+              />
             ) : (
               <span />
             )}

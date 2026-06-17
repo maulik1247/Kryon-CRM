@@ -1,9 +1,11 @@
+import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { DM_Sans, Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { RouteChangeGuard } from "@/components/route-change-guard";
 import { AuthProvider } from "@/lib/auth-provider";
 import { CrmDataProvider } from "@/lib/crm-data-provider";
+import { clerkAppearance } from "@/lib/clerk-appearance";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
@@ -57,15 +59,17 @@ export default function RootLayout({
         className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}
       >
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-          <AuthProvider>
+          <ClerkProvider appearance={clerkAppearance}>
             <CrmDataProvider>
-              <TooltipProvider delayDuration={200}>
-                <RouteChangeGuard />
-                {children}
-                <Toaster position="bottom-right" richColors closeButton />
-              </TooltipProvider>
+              <AuthProvider>
+                <TooltipProvider delayDuration={200}>
+                  <RouteChangeGuard />
+                  {children}
+                  <Toaster position="bottom-right" richColors closeButton />
+                </TooltipProvider>
+              </AuthProvider>
             </CrmDataProvider>
-          </AuthProvider>
+          </ClerkProvider>
         </ThemeProvider>
       </body>
     </html>

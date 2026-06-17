@@ -4,6 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -37,6 +38,7 @@ import { CustomerProductDetailsEditor } from "./customer-product-details-editor"
 import { CustomerPlantLocationsEditor } from "./customer-plant-locations-editor";
 import { CustomerDocumentsEditor } from "./customer-documents-editor";
 import { recordListRoutes } from "@/lib/record-routes";
+import { navigateAfterSave } from "@/lib/navigate-after-save";
 import type {
   Customer,
   CustomerProductDetails,
@@ -194,13 +196,13 @@ export function CustomerForm({ customerId }: CustomerFormProps) {
       addCustomer(
         formToCustomer(values, id, undefined, currentUser.id)
       );
-      router.push(recordListRoutes.customer);
+      navigateAfterSave(router, recordListRoutes.customer);
       return;
     }
 
     if (!customer) return;
     updateCustomer(customer.id, formToCustomer(values, customer.id, customer));
-    router.push(recordListRoutes.customer);
+    navigateAfterSave(router, recordListRoutes.customer);
   };
 
   const handleDelete = () => {
@@ -232,9 +234,11 @@ export function CustomerForm({ customerId }: CustomerFormProps) {
       footer={
         <>
           {!isAdd ? (
-            <Button type="button" variant="destructive" onClick={handleDelete}>
-              Delete
-            </Button>
+            <DeleteRecordButton
+              title="Delete customer?"
+              description={`This will permanently remove ${customer?.name ?? "this customer"}.`}
+              onConfirm={handleDelete}
+            />
           ) : (
             <span />
           )}
