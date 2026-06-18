@@ -8,6 +8,7 @@ import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { FormSelect } from "@/components/shared/form-select";
 import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
 import { RecordFormPage } from "@/components/records/record-form-page";
@@ -353,6 +354,9 @@ export function DealForm({ dealId }: DealFormProps) {
       }
     >
       <FormSection title="Summary">
+        {!isAdd && deal ? (
+          <ReadOnlyIdField label="Deal ID" htmlFor="deal-id" id={deal.id} />
+        ) : null}
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-xs text-muted-foreground">Customer</p>

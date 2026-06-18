@@ -33,6 +33,7 @@ import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { getUserName } from "@/lib/user-helpers";
 import type { Customer } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 
 function plantLocationSummary(locations: string[]) {
   if (locations.length === 0) return "—";
@@ -152,6 +153,7 @@ export function CustomersTable() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>ID</TableHead>
                     <TableHead>Customer Name</TableHead>
                     <TableHead>OEM Segment</TableHead>
                     <TableHead>Lead Source</TableHead>
@@ -172,6 +174,9 @@ export function CustomersTable() {
                       className="cursor-pointer"
                       onClick={() => goToCustomer(customer.id)}
                     >
+                      <TableCell>
+                        <RecordIdText id={customer.id} />
+                      </TableCell>
                       <TableCell className="max-w-[200px] truncate font-medium">
                         {customer.name}
                       </TableCell>

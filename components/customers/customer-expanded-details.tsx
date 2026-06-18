@@ -7,6 +7,7 @@ export function CustomerExpandedDetails({ customer }: { customer: Customer }) {
   return (
     <DetailGrid
       items={[
+        { label: "ID", value: customer.id, mono: true },
         { label: "OEM segment", value: customer.oemSegment },
         { label: "Lead source", value: customer.leadSource },
         { label: "Lead date", value: customer.leadDate },

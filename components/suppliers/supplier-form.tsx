@@ -11,6 +11,7 @@ import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { RecordFormPage } from "@/components/records/record-form-page";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
@@ -151,6 +152,13 @@ export function SupplierForm({ supplierId }: SupplierFormProps) {
     >
       <FormSections>
         <FormSection title="Identity">
+          {!isAdd && supplier ? (
+            <ReadOnlyIdField
+              label="Supplier ID"
+              htmlFor="supplier-id"
+              id={supplier.id}
+            />
+          ) : null}
           <FormField label="Supplier name" htmlFor="supplier-name">
             <Input
               id="supplier-name"

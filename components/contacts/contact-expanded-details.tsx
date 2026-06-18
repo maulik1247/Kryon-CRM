@@ -14,6 +14,7 @@ export function ContactExpandedDetails({
   return (
     <DetailGrid
       items={[
+        { label: "ID", value: contact.id, mono: true },
         { label: "Customer", value: customerName },
         { label: "Department", value: contact.department },
         { label: "Mobile", value: contact.phone },

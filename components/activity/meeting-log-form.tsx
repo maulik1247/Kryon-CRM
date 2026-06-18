@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { UserMultiSelect } from "@/components/shared/user-multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -297,6 +298,13 @@ export function MeetingLogForm({
     <form id={formId} onSubmit={handleSubmit}>
       <FormSections>
         <FormSection title="Details">
+          {activity ? (
+            <ReadOnlyIdField
+              label="Activity ID"
+              htmlFor="meeting-activity-id"
+              id={activity.id}
+            />
+          ) : null}
           <FormField label="Record type" htmlFor="meeting-record-type">
             <FormSelect
               id="meeting-record-type"

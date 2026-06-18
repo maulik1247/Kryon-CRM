@@ -31,6 +31,7 @@ export function DealExpandedDetails({
     <div className="space-y-6">
       <DetailGrid
         items={[
+          { label: "ID", value: deal.id, mono: true },
           { label: "Customer", value: customerName },
           { label: "Contact", value: contactName },
           { label: "Stage", value: stageName, emphasis: true },

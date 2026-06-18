@@ -31,6 +31,7 @@ import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import { getUserName } from "@/lib/user-helpers";
 import type { Contact } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 import { Star } from "lucide-react";
 
 export function ContactsTable() {
@@ -148,6 +149,7 @@ export function ContactsTable() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Designation</TableHead>
                 <TableHead>Department</TableHead>
@@ -163,7 +165,7 @@ export function ContactsTable() {
             <TableBody>
               {contacts.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="p-0">
+                  <TableCell colSpan={11} className="p-0">
                     <EmptyState
                       icon={Users}
                       title="No contacts yet"
@@ -189,6 +191,9 @@ export function ContactsTable() {
                     className="cursor-pointer"
                     onClick={() => goToContact(contact.id)}
                   >
+                    <TableCell>
+                      <RecordIdText id={contact.id} />
+                    </TableCell>
                     <TableCell className="max-w-[180px] truncate font-medium">
                       {contact.name}
                     </TableCell>

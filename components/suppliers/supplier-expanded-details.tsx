@@ -5,6 +5,7 @@ export function SupplierExpandedDetails({ supplier }: { supplier: Supplier }) {
   return (
     <DetailGrid
       items={[
+        { label: "ID", value: supplier.id, mono: true },
         { label: "Type", value: supplier.type },
         { label: "Region", value: supplier.region },
         {

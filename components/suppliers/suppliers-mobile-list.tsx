@@ -9,6 +9,7 @@ import {
 import { SupplierExpandedDetails } from "./supplier-expanded-details";
 import type { CrmUser, Supplier } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 import { getUserName } from "@/lib/user-helpers";
 
 interface SuppliersMobileListProps {
@@ -38,6 +39,7 @@ export function SuppliersMobileList({
             <div className="space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
+                  <RecordIdText id={supplier.id} className="mb-2 block" />
                   <Badge variant="secondary" className="mb-2">
                     {supplier.type}
                   </Badge>

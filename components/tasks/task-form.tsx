@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSection } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { FormSelect } from "@/components/shared/form-select";
 import { UserAssigneeSelect } from "@/components/shared/user-assignee-select";
 import { RecordFormPage } from "@/components/records/record-form-page";
@@ -259,9 +260,7 @@ export function TaskForm({ taskId, defaultDealId }: TaskFormProps) {
       ) : (
         <FormSection title="Task details">
           {task ? (
-            <FormField label="Task ID" htmlFor="task-id">
-              <Input id="task-id" value={task.id} readOnly className="bg-muted/30 font-mono" />
-            </FormField>
+            <ReadOnlyIdField label="Task ID" htmlFor="task-id" id={task.id} />
           ) : null}
 
           <FormField label="What to do" htmlFor="task-title">

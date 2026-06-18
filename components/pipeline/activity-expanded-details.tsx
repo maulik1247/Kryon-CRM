@@ -28,6 +28,7 @@ export function ActivityExpandedDetails({
 
   const items = isMeeting
     ? [
+        { label: "ID", value: activity.id, mono: true },
         {
           label: "Date & time",
           value: formatActivityDateTime(activity.occurredAt),
@@ -90,6 +91,7 @@ export function ActivityExpandedDetails({
         { label: "Added by", value: recordedBy },
       ]
     : [
+        { label: "ID", value: activity.id, mono: true },
         { label: "Date", value: formatActivityDateTime(activity.occurredAt) },
         { label: "Type", value: getActivityTypeLabel(activity.type) },
         { label: "Customer", value: customerName },

@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
@@ -256,6 +257,14 @@ export function CustomerForm({ customerId }: CustomerFormProps) {
       <Form {...form}>
         <FormSections>
           <FormSection title="Details">
+                  {!isAdd && customer ? (
+                    <ReadOnlyIdField
+                      label="Customer ID"
+                      htmlFor="customer-id"
+                      id={customer.id}
+                    />
+                  ) : null}
+
                   <FormField
                     control={form.control}
                     name="name"

@@ -6,6 +6,7 @@ export function ProductExpandedDetails({ product }: { product: Product }) {
   return (
     <DetailGrid
       items={[
+        { label: "ID", value: product.id, mono: true },
         { label: "Motor / Controller Type", value: product.motorControllerType },
         { label: "SKU / Part Number", value: product.sku, mono: true },
         { label: "Voltage", value: `${product.voltage} V` },

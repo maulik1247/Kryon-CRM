@@ -20,6 +20,7 @@ export function DocumentExchangeExpandedDetails({
     <div className="space-y-4">
       <DetailGrid
         items={[
+          { label: "ID", value: record.id, mono: true },
           { label: "Customer", value: customer?.name },
           { label: "Deal", value: deal?.id },
           { label: "Direction", value: record.direction },

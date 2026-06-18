@@ -31,6 +31,7 @@ import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import { getUserName } from "@/lib/user-helpers";
 import type { Supplier } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 
 export function SuppliersTable() {
   const { users } = useAuth();
@@ -144,6 +145,7 @@ export function SuppliersTable() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>ID</TableHead>
                   <TableHead>Name</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Region</TableHead>
@@ -156,7 +158,7 @@ export function SuppliersTable() {
               <TableBody>
                 {suppliers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="p-0">
+                    <TableCell colSpan={8} className="p-0">
                       <EmptyState
                         icon={Factory}
                         title="No suppliers yet"
@@ -180,6 +182,9 @@ export function SuppliersTable() {
                       className="cursor-pointer"
                       onClick={() => goToSupplier(supplier.id)}
                     >
+                      <TableCell>
+                        <RecordIdText id={supplier.id} />
+                      </TableCell>
                       <TableCell className="max-w-[200px] truncate font-medium">
                         {supplier.name}
                       </TableCell>

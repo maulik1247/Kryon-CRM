@@ -8,6 +8,7 @@ import { TableActions } from "@/components/shared/table-actions";
 import { getVendorStatusVariant } from "@/lib/vendor-status";
 import type { CrmUser, Customer } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 import { getUserName } from "@/lib/user-helpers";
 
 function plantLocationSummary(locations: string[]) {
@@ -46,6 +47,7 @@ export function CustomersMobileList({
                 <div className="flex min-w-0 items-start gap-3">
                   <UserAvatar name={customer.accountOwner} />
                   <div className="min-w-0">
+                    <RecordIdText id={customer.id} className="mb-1 block" />
                     <p className="font-display font-semibold leading-snug">
                       {customer.name}
                     </p>

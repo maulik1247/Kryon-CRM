@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
@@ -206,6 +207,13 @@ export function ProductForm({ productId }: ProductFormProps) {
     >
       <FormSections>
         <FormSection title="Identity">
+          {!isAdd && product ? (
+            <ReadOnlyIdField
+              label="Product ID"
+              htmlFor="product-id"
+              id={product.id}
+            />
+          ) : null}
           <FormField label="Product SKU / part number" htmlFor="sku">
             <Input
               id="sku"

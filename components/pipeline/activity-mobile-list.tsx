@@ -11,6 +11,7 @@ import { ActivityExpandedDetails } from "./activity-expanded-details";
 import type { DealActivity, DealActivityType } from "@/lib/types";
 import { formatActivityDateTime } from "@/lib/meeting-log-constants";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 
 interface ActivityMobileListProps {
   activities: DealActivity[];
@@ -56,6 +57,7 @@ export function ActivityMobileList({
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
+                    <RecordIdText id={activity.id} className="mb-1 block" />
                     <p className="font-medium leading-snug">{activity.summary}</p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       {formatActivityDateTime(activity.occurredAt)} · Added on{" "}

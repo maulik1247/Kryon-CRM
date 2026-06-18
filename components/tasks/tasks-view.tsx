@@ -43,6 +43,7 @@ import { filterTasksForUser, canUserAccessTask, getUserName } from "@/lib/user-h
 import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import type { DealTask, TaskStatus } from "@/lib/types";
 import { cn, formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 
 type TaskFilter = "open" | "completed" | "all";
 
@@ -244,8 +245,8 @@ export function TasksView() {
                       className="cursor-pointer"
                       onClick={() => goToTask(task.id)}
                     >
-                      <TableCell className="whitespace-nowrap font-mono text-xs text-muted-foreground">
-                        {task.id}
+                      <TableCell>
+                        <RecordIdText id={task.id} />
                       </TableCell>
                       <TableCell
                         className={cn(

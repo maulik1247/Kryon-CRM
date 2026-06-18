@@ -11,6 +11,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -201,6 +202,13 @@ export function ContactForm({ contactId }: ContactFormProps) {
     >
       <FormSections>
         <FormSection title="Profile">
+          {!isAdd && contact ? (
+            <ReadOnlyIdField
+              label="Contact ID"
+              htmlFor="contact-id"
+              id={contact.id}
+            />
+          ) : null}
           <FormField label="Contact Name" htmlFor="contact-name">
             <Input
               id="contact-name"

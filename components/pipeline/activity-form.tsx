@@ -12,6 +12,7 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { FormSection } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { MeetingLogForm } from "@/components/activity/meeting-log-form";
 import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
@@ -268,6 +269,13 @@ export function ActivityForm({ activityId, defaultDealId }: ActivityFormProps) {
       }
     >
       <FormSection title="Activity details">
+        {activity ? (
+          <ReadOnlyIdField
+            label="Activity ID"
+            htmlFor="activity-id"
+            id={activity.id}
+          />
+        ) : null}
         <FormField label="Type" htmlFor="activity-type">
           <FormSelect
             id="activity-type"

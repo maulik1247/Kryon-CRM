@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
 import type { DealCardDisplay } from "@/lib/deal-card-display";
+import { RecordIdText } from "@/components/shared/record-id";
 import type { Deal } from "@/lib/types";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
@@ -40,6 +41,7 @@ export const DealCard = React.memo(function DealCard({
               <GripVertical className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground/40" />
             )}
             <div className="min-w-0">
+              <RecordIdText id={deal.id} className="mb-1 block" />
               <p className="truncate text-sm font-semibold leading-tight">
                 {display.customerName}
               </p>

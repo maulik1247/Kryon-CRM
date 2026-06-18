@@ -11,6 +11,7 @@ import { getDocumentExchangeStatusVariant } from "@/lib/document-exchange-consta
 import { useCrmData } from "@/lib/crm-data-provider";
 import type { CrmUser, DocumentExchange } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 import { getUserName } from "@/lib/user-helpers";
 
 interface DocumentExchangeMobileListProps {
@@ -44,6 +45,7 @@ export function DocumentExchangeMobileList({
               <div className="space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
+                    <RecordIdText id={record.id} className="mb-2 block" />
                     <Badge
                       variant={getDocumentExchangeStatusVariant(record.status)}
                       className="mb-2"

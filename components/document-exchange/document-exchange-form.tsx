@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { FormSection, FormSections } from "@/components/shared/form-section";
+import { ReadOnlyIdField } from "@/components/shared/record-id";
 import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -227,6 +228,13 @@ export function DocumentExchangeForm({ recordId }: DocumentExchangeFormProps) {
     >
       <FormSections>
         <FormSection title="Record">
+          {!isAdd && record ? (
+            <ReadOnlyIdField
+              label="Document ID"
+              htmlFor="docx-id"
+              id={record.id}
+            />
+          ) : null}
           <FormField label="Customer" htmlFor="docx-customer">
             <CustomerSearchSelect
               id="docx-customer"

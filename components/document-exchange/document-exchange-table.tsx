@@ -32,6 +32,7 @@ import { sortByCreatedAtDesc } from "@/lib/list-helpers";
 import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import type { DocumentExchange } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 import { getUserName } from "@/lib/user-helpers";
 
 export function DocumentExchangeTable() {
@@ -144,6 +145,7 @@ export function DocumentExchangeTable() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>ID</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Direction</TableHead>
@@ -159,7 +161,7 @@ export function DocumentExchangeTable() {
               <TableBody>
                 {records.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="p-0">
+                    <TableCell colSpan={11} className="p-0">
                       <EmptyState
                         icon={FileText}
                         title="No documents yet"
@@ -186,6 +188,9 @@ export function DocumentExchangeTable() {
                         className="cursor-pointer"
                         onClick={() => goToDocument(record.id)}
                       >
+                        <TableCell>
+                          <RecordIdText id={record.id} />
+                        </TableCell>
                         <TableCell className="max-w-[180px] truncate font-medium">
                           {record.documentType}
                         </TableCell>

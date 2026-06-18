@@ -1,9 +1,9 @@
 "use client";
 
 import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight,
   Building2,
   Factory,
   Kanban,
@@ -12,13 +12,10 @@ import {
   ScrollText,
   Search,
   Users,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Dialog, DialogOverlay, DialogPortal } from "@/components/ui/dialog";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
@@ -42,24 +39,6 @@ const TYPE_ICONS: Record<
   supplier: Factory,
 };
 
-const TYPE_ICON_STYLES: Record<SearchResultType, string> = {
-  customer: "bg-sky-500/10 text-sky-700 dark:text-sky-300",
-  contact: "bg-violet-500/10 text-violet-700 dark:text-violet-300",
-  deal: "bg-primary/10 text-primary",
-  task: "bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  activity: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
-  product: "bg-slate-500/10 text-slate-700 dark:text-slate-300",
-  supplier: "bg-orange-500/10 text-orange-700 dark:text-orange-300",
-};
-
-const QUICK_HINTS = [
-  "Customer name",
-  "Deal ID",
-  "Contact email",
-  "Task title",
-  "Product SKU",
-];
-
 function HighlightMatch({
   text,
   query,
@@ -79,7 +58,7 @@ function HighlightMatch({
   return (
     <>
       {text.slice(0, index)}
-      <mark className="rounded-sm bg-primary/15 px-0.5 font-medium text-foreground">
+      <mark className="rounded-sm bg-primary/20 px-0.5 font-medium text-foreground">
         {text.slice(index, index + trimmed.length)}
       </mark>
       {text.slice(index + trimmed.length)}
@@ -106,7 +85,7 @@ export function GlobalSearch() {
   const [query, setQuery] = React.useState("");
   const [activeIndex, setActiveIndex] = React.useState(0);
   const inputRef = React.useRef<HTMLInputElement>(null);
-  const itemRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
+  const listRef = React.useRef<HTMLDivElement>(null);
 
   const groups = React.useMemo(() => {
     if (!open || query.trim().length < 2) {
@@ -149,6 +128,7 @@ export function GlobalSearch() {
   );
 
   const resultCount = flatResults.length;
+  const trimmedQuery = query.trim();
 
   React.useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -178,9 +158,10 @@ export function GlobalSearch() {
   }, [query]);
 
   React.useEffect(() => {
-    itemRefs.current[activeIndex]?.scrollIntoView({
-      block: "nearest",
-    });
+    const active = listRef.current?.querySelector<HTMLElement>(
+      '[data-active="true"]'
+    );
+    active?.scrollIntoView({ block: "nearest" });
   }, [activeIndex, flatResults.length]);
 
   const handleSelect = React.useCallback(
@@ -219,19 +200,6 @@ export function GlobalSearch() {
     <>
       <Button
         type="button"
-        variant="outline"
-        className="hidden h-9 w-52 items-center gap-2 rounded-lg border-border/60 bg-muted/20 px-3 text-muted-foreground shadow-sm transition-smooth hover:bg-muted/40 hover:text-foreground md:inline-flex"
-        onClick={() => setOpen(true)}
-      >
-        <Search className="h-4 w-4 shrink-0 opacity-70" />
-        <span className="flex-1 truncate text-left text-sm">Search…</span>
-        <kbd className="pointer-events-none hidden rounded-md border border-border/70 bg-background/80 px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground lg:inline-block">
-          ⌘K
-        </kbd>
-      </Button>
-
-      <Button
-        type="button"
         variant="ghost"
         size="icon"
         className="h-9 w-9 shrink-0 rounded-lg md:hidden"
@@ -241,69 +209,82 @@ export function GlobalSearch() {
         <Search className="h-4 w-4" />
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent
-          className={cn(
-            "gap-0 overflow-hidden border-border/60 p-0 shadow-2xl sm:max-w-2xl",
-            "top-[8%] translate-y-0 sm:top-[10%]",
-            "[&>button]:right-3 [&>button]:top-3 [&>button]:opacity-60"
-          )}
-        >
-          <div className="flex items-center gap-3 border-b px-4 py-3.5">
-            <Search className="h-5 w-5 shrink-0 text-primary" />
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onKeyDown={handleInputKeyDown}
-              placeholder="Search customers, deals, tasks…"
-              className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/80"
-            />
-            {query ? (
-              <button
-                type="button"
-                onClick={() => setQuery("")}
-                className="rounded-md px-2 py-1 text-xs text-muted-foreground transition-smooth hover:bg-muted hover:text-foreground"
-              >
-                Clear
-              </button>
-            ) : null}
-          </div>
+      <button
+        type="button"
+        className="hidden h-9 w-56 items-center gap-2.5 rounded-lg border border-border/60 bg-muted/25 px-3 text-sm text-muted-foreground transition-smooth hover:bg-muted/45 hover:text-foreground md:flex lg:w-64"
+        onClick={() => setOpen(true)}
+        aria-label="Search CRM"
+      >
+        <Search className="h-4 w-4 shrink-0 opacity-70" />
+        <span className="flex-1 truncate text-left">Search CRM…</span>
+        <kbd className="pointer-events-none hidden rounded border border-border/70 bg-background px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground lg:inline-block">
+          ⌘K
+        </kbd>
+      </button>
 
-          <ScrollArea className="max-h-[min(26rem,58vh)]">
-            <div className="p-2">
-              {!query.trim() ? (
-                <div className="px-3 py-6">
-                  <p className="text-sm font-medium text-foreground">
-                    Quick search
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Jump to any record across the CRM.
-                  </p>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    {QUICK_HINTS.map((hint) => (
-                      <span
-                        key={hint}
-                        className="rounded-full border border-border/60 bg-muted/30 px-2.5 py-1 text-xs text-muted-foreground"
-                      >
-                        {hint}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogPortal>
+          <DialogOverlay />
+          <DialogPrimitive.Content
+            className={cn(
+              "fixed z-50 flex max-h-[min(85dvh,28rem)] w-[calc(100%-1.5rem)] max-w-lg flex-col overflow-hidden rounded-xl border bg-popover text-popover-foreground shadow-2xl outline-none",
+              "left-1/2 top-[max(0.75rem,env(safe-area-inset-top))] -translate-x-1/2 sm:top-[14%]",
+              "duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95"
+            )}
+            onOpenAutoFocus={(event) => {
+              event.preventDefault();
+              inputRef.current?.focus();
+            }}
+          >
+            <DialogPrimitive.Title className="sr-only">
+              Search CRM
+            </DialogPrimitive.Title>
+
+            <div className="flex items-center gap-2.5 border-b px-3 py-3 sm:px-4">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                ref={inputRef}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={handleInputKeyDown}
+                placeholder="Search customers, deals, tasks…"
+                className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground sm:text-sm"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+              />
+              {trimmedQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setQuery("")}
+                  className="shrink-0 rounded-md p-1 text-muted-foreground transition-smooth hover:bg-muted hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              ) : null}
+            </div>
+
+            <div
+              ref={listRef}
+              className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-1.5"
+            >
+              {!trimmedQuery ? (
+                <p className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  Start typing to find customers, deals, contacts, and more.
+                </p>
+              ) : trimmedQuery.length < 2 ? (
+                <p className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  Type at least 2 characters.
+                </p>
               ) : resultCount === 0 ? (
-                <div className="px-3 py-10 text-center">
-                  <p className="text-sm font-medium text-foreground">
-                    No matches found
-                  </p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Try a customer name, deal ID, or contact email.
-                  </p>
-                </div>
+                <p className="px-3 py-10 text-center text-sm text-muted-foreground">
+                  No results for &ldquo;{trimmedQuery}&rdquo;
+                </p>
               ) : (
                 groups.map((group) => (
-                  <div key={group.type} className="mb-1 last:mb-0">
-                    <p className="px-2 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/80">
+                  <div key={group.type} className="py-1">
+                    <p className="px-3 pb-1 pt-1.5 text-xs font-medium text-muted-foreground">
                       {getSearchTypeLabel(group.type)}
                     </p>
                     <div className="space-y-0.5">
@@ -316,9 +297,6 @@ export function GlobalSearch() {
                         return (
                           <SearchResultRow
                             key={`${result.type}-${result.id}`}
-                            ref={(node) => {
-                              itemRefs.current[index] = node;
-                            }}
                             result={result}
                             query={query}
                             isActive={isActive}
@@ -333,30 +311,18 @@ export function GlobalSearch() {
                 ))
               )}
             </div>
-          </ScrollArea>
 
-          <div className="flex items-center justify-between border-t bg-muted/20 px-4 py-2.5 text-[11px] text-muted-foreground">
-            <span>
-              {query.trim()
-                ? `${resultCount} result${resultCount === 1 ? "" : "s"}`
-                : "Search the entire workspace"}
-            </span>
-            <div className="hidden items-center gap-2 sm:flex">
-              <kbd className="rounded border border-border/70 bg-background px-1.5 py-0.5 font-mono">
-                ↑↓
-              </kbd>
-              <span>Navigate</span>
-              <kbd className="rounded border border-border/70 bg-background px-1.5 py-0.5 font-mono">
-                ↵
-              </kbd>
-              <span>Open</span>
-              <kbd className="rounded border border-border/70 bg-background px-1.5 py-0.5 font-mono">
-                esc
-              </kbd>
-              <span>Close</span>
-            </div>
-          </div>
-        </DialogContent>
+            {resultCount > 0 ? (
+              <div className="border-t px-3 py-2 text-center text-xs text-muted-foreground sm:text-left">
+                {resultCount} result{resultCount === 1 ? "" : "s"}
+                <span className="hidden sm:inline">
+                  {" "}
+                  · ↑↓ navigate · ↵ open · esc close
+                </span>
+              </div>
+            ) : null}
+          </DialogPrimitive.Content>
+        </DialogPortal>
       </Dialog>
     </>
   );
@@ -371,50 +337,44 @@ interface SearchResultRowProps {
   onHover: () => void;
 }
 
-const SearchResultRow = React.forwardRef<
-  HTMLButtonElement,
-  SearchResultRowProps
->(function SearchResultRow(
-  { result, query, isActive, icon: Icon, onSelect, onHover },
-  ref
-) {
+function SearchResultRow({
+  result,
+  query,
+  isActive,
+  icon: Icon,
+  onSelect,
+  onHover,
+}: SearchResultRowProps) {
   return (
     <button
-      ref={ref}
       type="button"
+      data-active={isActive}
       onClick={() => onSelect(result.href)}
       onMouseEnter={onHover}
       className={cn(
-        "group flex w-full items-center gap-3 rounded-lg px-2.5 py-2.5 text-left transition-smooth",
-        isActive
-          ? "bg-primary/8 ring-1 ring-primary/20"
-          : "hover:bg-muted/60"
+        "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-smooth",
+        isActive ? "bg-accent text-accent-foreground" : "hover:bg-muted/70"
       )}
     >
-      <span
+      <Icon
         className={cn(
-          "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
-          TYPE_ICON_STYLES[result.type]
+          "h-4 w-4 shrink-0",
+          isActive ? "opacity-90" : "text-muted-foreground"
         )}
-      >
-        <Icon className="h-4 w-4" />
-      </span>
+      />
       <span className="min-w-0 flex-1">
         <span className="block truncate text-sm font-medium leading-snug">
           <HighlightMatch text={result.title} query={query} />
         </span>
-        <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+        <span
+          className={cn(
+            "mt-0.5 block truncate text-xs",
+            isActive ? "text-accent-foreground/80" : "text-muted-foreground"
+          )}
+        >
           {result.subtitle}
         </span>
       </span>
-      <ArrowRight
-        className={cn(
-          "h-4 w-4 shrink-0 text-muted-foreground transition-all",
-          isActive
-            ? "translate-x-0 opacity-100"
-            : "translate-x-1 opacity-0 group-hover:translate-x-0 group-hover:opacity-60"
-        )}
-      />
     </button>
   );
-});
+}

@@ -51,6 +51,7 @@ import {
 import type { DealActivityType } from "@/lib/types";
 import { formatActivityDateTime } from "@/lib/meeting-log-constants";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 
 const ACTIVITY_ICONS = {
   call: Phone,
@@ -224,6 +225,7 @@ export function ActivityLogView() {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>ID</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Type</TableHead>
                   <TableHead>Customer</TableHead>
@@ -240,7 +242,7 @@ export function ActivityLogView() {
               <TableBody>
                 {activities.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={11} className="p-0">
+                    <TableCell colSpan={12} className="p-0">
                       <EmptyState
                         icon={ScrollText}
                         title="No activity logged yet"
@@ -276,6 +278,9 @@ export function ActivityLogView() {
                         className="cursor-pointer"
                         onClick={() => goToActivity(activity.id)}
                       >
+                        <TableCell>
+                          <RecordIdText id={activity.id} />
+                        </TableCell>
                         <TableCell className="whitespace-nowrap">
                           {formatActivityDateTime(activity.occurredAt)}
                         </TableCell>

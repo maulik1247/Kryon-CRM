@@ -10,6 +10,7 @@ import {
 import { ContactExpandedDetails } from "./contact-expanded-details";
 import type { Contact, CrmUser } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 import { getUserName } from "@/lib/user-helpers";
 
 interface ContactsMobileListProps {
@@ -41,6 +42,7 @@ export function ContactsMobileList({
             <div className="space-y-2">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
+                  <RecordIdText id={contact.id} className="mb-1 block" />
                   <p className="font-medium leading-snug">{contact.name}</p>
                   <p className="mt-0.5 text-sm text-muted-foreground">
                     {contact.designation}

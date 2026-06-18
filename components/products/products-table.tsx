@@ -31,6 +31,7 @@ import { recordNewRoutes, recordRoutes } from "@/lib/record-routes";
 import { getUserName } from "@/lib/user-helpers";
 import type { Product } from "@/lib/types";
 import { formatDate } from "@/lib/utils";
+import { RecordIdText } from "@/components/shared/record-id";
 
 export function ProductsTable() {
   const { users } = useAuth();
@@ -144,6 +145,7 @@ export function ProductsTable() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>ID</TableHead>
                 <TableHead>Motor Type</TableHead>
                 <TableHead>Model</TableHead>
                 <TableHead>SKU</TableHead>
@@ -161,7 +163,7 @@ export function ProductsTable() {
             <TableBody>
               {products.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="p-0">
+                  <TableCell colSpan={13} className="p-0">
                     <EmptyState
                       icon={Package}
                       title="No products yet"
@@ -185,6 +187,9 @@ export function ProductsTable() {
                   className="cursor-pointer"
                   onClick={() => goToProduct(product.id)}
                 >
+                  <TableCell>
+                    <RecordIdText id={product.id} />
+                  </TableCell>
                   <TableCell>
                     <Badge variant="default">{product.motorControllerType}</Badge>
                   </TableCell>
