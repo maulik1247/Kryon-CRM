@@ -16,9 +16,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { DealCard } from "./deal-card";
 import { OpenFromUrl } from "@/components/shared/open-from-url";
 import { DealsMobileList } from "./deals-mobile-list";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
+import {
+  buildDealCardDisplayMap,
+  type DealCardDisplay,
+} from "@/lib/deal-card-display";
+import { buildNextOpenTaskByDealId } from "@/lib/deal-helpers";
 import { filterDealsForUser, canUserAccessDeal } from "@/lib/user-helpers";
 import { recordRoutes } from "@/lib/record-routes";
 import { getStageColumnStyle } from "@/lib/pipeline-styles";
@@ -29,10 +35,29 @@ function dealsToColumns(
   deals: Deal[],
   stages: PipelineStageConfig[]
 ): Record<string, Deal[]> {
-  return stages.reduce<Record<string, Deal[]>>((columns, stage) => {
-    columns[stage.id] = deals.filter((deal) => deal.stage === stage.id);
-    return columns;
-  }, {});
+  const columns = Object.fromEntries(
+    stages.map((stage) => [stage.id, [] as Deal[]])
+  ) as Record<string, Deal[]>;
+
+  for (const deal of deals) {
+    (columns[deal.stage] ??= []).push(deal);
+  }
+
+  return columns;
+}
+
+function persistStageMoves(
+  columns: Record<string, Deal[]>,
+  stages: PipelineStageConfig[],
+  moveDealToStage: (dealId: string, stageId: string) => void
+) {
+  for (const stage of stages) {
+    for (const deal of columns[stage.id] ?? []) {
+      if (deal.stage !== stage.id) {
+        moveDealToStage(deal.id, stage.id);
+      }
+    }
+  }
 }
 
 interface PipelineDealCardProps extends Omit<
@@ -40,13 +65,15 @@ interface PipelineDealCardProps extends Omit<
   "value" | "children"
 > {
   deal: Deal;
-  onDealClick: (deal: Deal) => void;
+  display: DealCardDisplay;
+  onDealClick: (dealId: string) => void;
   asHandle?: boolean;
   isOverlay?: boolean;
 }
 
-function PipelineDealCard({
+const PipelineDealCard = React.memo(function PipelineDealCard({
   deal,
+  display,
   onDealClick,
   asHandle,
   isOverlay,
@@ -55,9 +82,10 @@ function PipelineDealCard({
   const cardContent = (
     <DealCard
       deal={deal}
+      display={display}
       isOverlay={isOverlay}
       showHandle={asHandle && !isOverlay}
-      onClick={() => onDealClick(deal)}
+      onClick={() => onDealClick(deal.id)}
     />
   );
 
@@ -70,7 +98,7 @@ function PipelineDealCard({
       )}
     </KanbanItem>
   );
-}
+});
 
 interface PipelineColumnProps extends Omit<
   ComponentProps<typeof KanbanColumn>,
@@ -78,28 +106,28 @@ interface PipelineColumnProps extends Omit<
 > {
   stage: PipelineStageConfig;
   deals: Deal[];
-  onDealClick: (deal: Deal) => void;
+  cardDisplayByDealId: Map<string, DealCardDisplay>;
+  onDealClick: (dealId: string) => void;
   isOverlay?: boolean;
 }
 
-function PipelineColumn({
+const PipelineColumn = React.memo(function PipelineColumn({
   stage,
   deals: stageDeals,
+  cardDisplayByDealId,
   onDealClick,
   isOverlay,
   ...props
 }: PipelineColumnProps) {
-  const totalValue = stageDeals.reduce(
-    (sum, deal) => sum + deal.estimatedAnnualValue,
-    0
+  const totalValue = React.useMemo(
+    () => stageDeals.reduce((sum, deal) => sum + deal.estimatedAnnualValue, 0),
+    [stageDeals]
   );
 
   return (
     <KanbanColumn {...props}>
       <Card
-        className={cn(
-          "flex w-[17rem] shrink-0 flex-col border shadow-none"
-        )}
+        className={cn("flex w-[17rem] shrink-0 flex-col border shadow-none")}
         style={getStageColumnStyle(stage.color)}
       >
         <CardHeader className="space-y-1 border-b border-border/40 px-3 py-2.5">
@@ -131,6 +159,14 @@ function PipelineColumn({
                 <PipelineDealCard
                   key={deal.id}
                   deal={deal}
+                  display={
+                    cardDisplayByDealId.get(deal.id) ?? {
+                      customerName: "Unknown customer",
+                      productsSummary: "",
+                      supplierSuffix: "",
+                      nextTask: null,
+                    }
+                  }
                   onDealClick={onDealClick}
                   asHandle={!isOverlay}
                   isOverlay={isOverlay}
@@ -142,49 +178,104 @@ function PipelineColumn({
       </Card>
     </KanbanColumn>
   );
-}
+});
 
 export function KanbanBoard() {
+  const isMobile = useIsMobile();
   const { currentUser, users } = useAuth();
-  const { deals, pipelineStages, moveDealToStage, getDealById } = useCrmData();
+  const {
+    deals,
+    dealTasks,
+    pipelineStages,
+    moveDealToStage,
+    getDealById,
+    getCustomerById,
+    getProductById,
+    getSupplierById,
+  } = useCrmData();
 
   const visibleDeals = React.useMemo(
     () => filterDealsForUser(deals, currentUser, users),
     [deals, currentUser, users]
   );
 
-  const { goToDeal } = useRecordNavigation();
-  const [columns, setColumns] = React.useState(() =>
-    dealsToColumns(visibleDeals, pipelineStages)
+  const nextTaskByDealId = React.useMemo(
+    () => buildNextOpenTaskByDealId(dealTasks),
+    [dealTasks]
   );
 
-  React.useEffect(() => {
-    setColumns(dealsToColumns(visibleDeals, pipelineStages));
-  }, [visibleDeals, pipelineStages]);
+  const cardDisplayByDealId = React.useMemo(
+    () =>
+      buildDealCardDisplayMap(visibleDeals, {
+        getCustomerById,
+        getProductById,
+        getSupplierById,
+        nextTaskByDealId,
+      }),
+    [
+      visibleDeals,
+      getCustomerById,
+      getProductById,
+      getSupplierById,
+      nextTaskByDealId,
+    ]
+  );
 
-  const handleValueChange = (newColumns: Record<string, Deal[]>) => {
-    setColumns(newColumns);
+  const persistedColumns = React.useMemo(
+    () => dealsToColumns(visibleDeals, pipelineStages),
+    [visibleDeals, pipelineStages]
+  );
 
-    for (const stage of pipelineStages) {
-      for (const deal of newColumns[stage.id] ?? []) {
-        if (deal.stage !== stage.id) {
-          moveDealToStage(deal.id, stage.id);
-        }
+  const [dragColumns, setDragColumns] = React.useState<Record<
+    string,
+    Deal[]
+  > | null>(null);
+  const dragColumnsRef = React.useRef<Record<string, Deal[]> | null>(null);
+
+  const columns = dragColumns ?? persistedColumns;
+
+  const { goToDeal } = useRecordNavigation();
+
+  const handleDealClick = React.useCallback(
+    (dealId: string) => {
+      goToDeal(dealId);
+    },
+    [goToDeal]
+  );
+
+  const handleValueChange = React.useCallback(
+    (newColumns: Record<string, Deal[]>) => {
+      dragColumnsRef.current = newColumns;
+      setDragColumns(newColumns);
+    },
+    []
+  );
+
+  const handleDragStateChange = React.useCallback(
+    (isDragging: boolean) => {
+      if (isDragging) return;
+
+      const pendingColumns = dragColumnsRef.current;
+      if (pendingColumns) {
+        persistStageMoves(pendingColumns, pipelineStages, moveDealToStage);
       }
-    }
-  };
 
-  const handleDealClick = (deal: Deal) => {
-    goToDeal(deal.id);
-  };
+      dragColumnsRef.current = null;
+      setDragColumns(null);
+    },
+    [moveDealToStage, pipelineStages]
+  );
 
-  const findDeal = (id: string) => {
-    for (const stageDeals of Object.values(columns)) {
-      const deal = stageDeals.find((item) => item.id === id);
-      if (deal) return deal;
-    }
-    return getDealById(id);
-  };
+  const findDeal = React.useCallback(
+    (id: string) => {
+      for (const stageDeals of Object.values(columns)) {
+        const deal = stageDeals.find((item) => item.id === id);
+        if (deal) return deal;
+      }
+      return getDealById(id);
+    },
+    [columns, getDealById]
+  );
 
   return (
     <>
@@ -199,49 +290,63 @@ export function KanbanBoard() {
           }}
         />
       </React.Suspense>
-      <DealsMobileList
-        deals={visibleDeals}
-        pipelineStages={pipelineStages}
-        onDealClick={handleDealClick}
-      />
 
-      <div className="hidden overflow-x-auto rounded-lg border border-border/60 bg-background md:block">
-        <Kanban
-          value={columns}
-          onValueChange={handleValueChange}
-          getItemValue={(deal) => deal.id}
-        >
-          <ReuiKanbanBoard className="flex w-max min-w-full gap-3 p-3 sm:grid-cols-none">
-            {pipelineStages.map((stage) => (
-              <PipelineColumn
-                key={stage.id}
-                stage={stage}
-                value={stage.id}
-                deals={columns[stage.id] ?? []}
-                onDealClick={handleDealClick}
-              />
-            ))}
-          </ReuiKanbanBoard>
+      {isMobile ? (
+        <DealsMobileList
+          deals={visibleDeals}
+          pipelineStages={pipelineStages}
+          cardDisplayByDealId={cardDisplayByDealId}
+          onDealClick={handleDealClick}
+        />
+      ) : (
+        <div className="overflow-x-auto rounded-lg border border-border/60 bg-background">
+          <Kanban
+            value={columns}
+            onValueChange={handleValueChange}
+            onDragStateChange={handleDragStateChange}
+            getItemValue={(deal) => deal.id}
+          >
+            <ReuiKanbanBoard className="flex w-max min-w-full gap-3 p-3 sm:grid-cols-none">
+              {pipelineStages.map((stage) => (
+                <PipelineColumn
+                  key={stage.id}
+                  stage={stage}
+                  value={stage.id}
+                  deals={columns[stage.id] ?? []}
+                  cardDisplayByDealId={cardDisplayByDealId}
+                  onDealClick={handleDealClick}
+                />
+              ))}
+            </ReuiKanbanBoard>
 
-          <KanbanOverlay className="rounded-lg border border-dashed border-border bg-muted/30">
-            {({ value, variant }) => {
-              if (variant !== "item") return null;
-              const deal = findDeal(String(value));
-              if (!deal) return null;
+            <KanbanOverlay className="rounded-lg border border-dashed border-border bg-muted/30">
+              {({ value, variant }) => {
+                if (variant !== "item") return null;
+                const deal = findDeal(String(value));
+                if (!deal) return null;
 
-              return (
-                <div className="w-[17rem]">
-                  <PipelineDealCard
-                    deal={deal}
-                    onDealClick={() => {}}
-                    isOverlay
-                  />
-                </div>
-              );
-            }}
-          </KanbanOverlay>
-        </Kanban>
-      </div>
+                return (
+                  <div className="w-[17rem]">
+                    <PipelineDealCard
+                      deal={deal}
+                      display={
+                        cardDisplayByDealId.get(deal.id) ?? {
+                          customerName: "Unknown customer",
+                          productsSummary: "",
+                          supplierSuffix: "",
+                          nextTask: null,
+                        }
+                      }
+                      onDealClick={() => {}}
+                      isOverlay
+                    />
+                  </div>
+                );
+              }}
+            </KanbanOverlay>
+          </Kanban>
+        </div>
+      )}
     </>
   );
 }

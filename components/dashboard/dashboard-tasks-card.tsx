@@ -18,6 +18,9 @@ import { MobileTableScroll } from "@/components/shared/mobile-table-scroll";
 import { TablePagination } from "@/components/shared/table-pagination";
 import { usePagination } from "@/hooks/use-pagination";
 import { useRecordNavigation } from "@/hooks/use-record-navigation";
+import { useCrmLookups } from "@/hooks/use-crm-lookups";
+import { useTaskDisplayHelpers } from "@/hooks/use-task-display";
+import { ResponsiveView } from "@/components/shared/responsive-view";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
@@ -30,7 +33,15 @@ import { cn, formatDate } from "@/lib/utils";
 export function DashboardTasksCard() {
   const { currentUser, users } = useAuth();
   const seesAllDeals = canViewAllDeals(currentUser.role);
-  const { dealTasks, deals, getCustomerById } = useCrmData();
+  const { dealTasks, deals } = useCrmData();
+  const { customerNameByDealId } = useCrmLookups();
+  const {
+    customerNameByDealIdFn,
+    addedByName,
+    assignedToName,
+    isOverdue,
+    todayStart,
+  } = useTaskDisplayHelpers();
   const { goToTask } = useRecordNavigation();
 
   const tasks = React.useMemo(() => {
@@ -48,18 +59,12 @@ export function DashboardTasksCard() {
     setPage,
   } = usePagination(tasks);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const openTask = (taskId: string) => {
-    goToTask(taskId);
-  };
-
-  const isOverdue = (task: (typeof paginatedItems)[number]) => {
-    const dueDate = new Date(`${task.dueDate}T00:00:00`);
-    dueDate.setHours(0, 0, 0, 0);
-    return dueDate < today;
-  };
+  const openTask = React.useCallback(
+    (taskId: string) => {
+      goToTask(taskId);
+    },
+    [goToTask]
+  );
 
   return (
     <>
@@ -78,103 +83,103 @@ export function DashboardTasksCard() {
             </p>
           ) : (
             <>
-              <TasksMobileList
-                tasks={paginatedItems}
-                customerNameByDealId={(dealId) => {
-                  const deal = deals.find((entry) => entry.id === dealId);
-                  return deal ? getCustomerById(deal.customerId)?.name : undefined;
-                }}
-                addedByName={(userId) => getUserName(users, userId)}
-                assignedToName={(userId) => getUserName(users, userId)}
-                isOverdue={isOverdue}
-                onOpenTask={openTask}
-                showActions={false}
-                showStatusSelect={false}
-              />
-              {totalItems > 0 ? (
-                <div className="overflow-hidden rounded-lg border bg-card shadow-sm md:hidden">
-                  <TablePagination
-                    page={page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    rangeStart={rangeStart}
-                    rangeEnd={rangeEnd}
-                    onPageChange={setPage}
-                  />
-                </div>
-              ) : null}
-
-              <div className="hidden md:block">
-                <MobileTableScroll>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Task</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Do by</TableHead>
-                        {seesAllDeals ? <TableHead>Assigned to</TableHead> : null}
-                        <TableHead>Deal</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {paginatedItems.map((task) => {
-                        const deal = deals.find(
-                          (entry) => entry.id === task.dealId
-                        );
-                        const customer = deal
-                          ? getCustomerById(deal.customerId)
-                          : undefined;
-                        const dueDate = new Date(`${task.dueDate}T00:00:00`);
-                        dueDate.setHours(0, 0, 0, 0);
-                        const overdue = dueDate < today;
-
-                        return (
-                          <TableRow
-                            key={task.id}
-                            className="cursor-pointer"
-                            onClick={() => openTask(task.id)}
-                          >
-                            <TableCell className="max-w-[200px] truncate font-medium">
-                              {task.title}
-                            </TableCell>
-                            <TableCell className="whitespace-nowrap">
-                              <Badge variant="secondary">
-                                {getTaskStatusLabel(task.status)}
-                              </Badge>
-                            </TableCell>
-                            <TableCell
-                              className={cn(
-                                "whitespace-nowrap",
-                                overdue && "text-destructive"
-                              )}
-                            >
-                              {formatDate(task.dueDate)}
-                            </TableCell>
-                            {seesAllDeals ? (
-                              <TableCell className="max-w-[140px] truncate">
-                                {getUserName(users, task.assignedToUserId)}
-                              </TableCell>
-                            ) : null}
-                            <TableCell className="max-w-[160px] truncate text-muted-foreground">
-                              {customer?.name ?? task.dealId}
-                            </TableCell>
+              <ResponsiveView
+                mobile={
+                  <>
+                    <TasksMobileList
+                      tasks={paginatedItems}
+                      customerNameByDealId={customerNameByDealIdFn}
+                      addedByName={addedByName}
+                      assignedToName={assignedToName}
+                      isOverdue={isOverdue}
+                      onOpenTask={openTask}
+                      showActions={false}
+                      showStatusSelect={false}
+                    />
+                    {totalItems > 0 ? (
+                      <div className="overflow-hidden rounded-lg border bg-card shadow-sm">
+                        <TablePagination
+                          page={page}
+                          totalPages={totalPages}
+                          totalItems={totalItems}
+                          rangeStart={rangeStart}
+                          rangeEnd={rangeEnd}
+                          onPageChange={setPage}
+                        />
+                      </div>
+                    ) : null}
+                  </>
+                }
+                desktop={
+                  <>
+                    <MobileTableScroll>
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>Task</TableHead>
+                            <TableHead>Status</TableHead>
+                            <TableHead>Do by</TableHead>
+                            {seesAllDeals ? <TableHead>Assigned to</TableHead> : null}
+                            <TableHead>Deal</TableHead>
                           </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </MobileTableScroll>
-                {totalItems > 0 ? (
-                  <TablePagination
-                    page={page}
-                    totalPages={totalPages}
-                    totalItems={totalItems}
-                    rangeStart={rangeStart}
-                    rangeEnd={rangeEnd}
-                    onPageChange={setPage}
-                  />
-                ) : null}
-              </div>
+                        </TableHeader>
+                        <TableBody>
+                          {paginatedItems.map((task) => {
+                            const customerName =
+                              customerNameByDealId.get(task.dealId) ?? task.dealId;
+                            const overdue =
+                              new Date(`${task.dueDate}T00:00:00`).getTime() <
+                              todayStart;
+
+                            return (
+                              <TableRow
+                                key={task.id}
+                                className="cursor-pointer"
+                                onClick={() => openTask(task.id)}
+                              >
+                                <TableCell className="max-w-[200px] truncate font-medium">
+                                  {task.title}
+                                </TableCell>
+                                <TableCell className="whitespace-nowrap">
+                                  <Badge variant="secondary">
+                                    {getTaskStatusLabel(task.status)}
+                                  </Badge>
+                                </TableCell>
+                                <TableCell
+                                  className={cn(
+                                    "whitespace-nowrap",
+                                    overdue && "text-destructive"
+                                  )}
+                                >
+                                  {formatDate(task.dueDate)}
+                                </TableCell>
+                                {seesAllDeals ? (
+                                  <TableCell className="max-w-[140px] truncate">
+                                    {getUserName(users, task.assignedToUserId)}
+                                  </TableCell>
+                                ) : null}
+                                <TableCell className="max-w-[160px] truncate text-muted-foreground">
+                                  {customerName}
+                                </TableCell>
+                              </TableRow>
+                            );
+                          })}
+                        </TableBody>
+                      </Table>
+                    </MobileTableScroll>
+                    {totalItems > 0 ? (
+                      <TablePagination
+                        page={page}
+                        totalPages={totalPages}
+                        totalItems={totalItems}
+                        rangeStart={rangeStart}
+                        rangeEnd={rangeEnd}
+                        onPageChange={setPage}
+                      />
+                    ) : null}
+                  </>
+                }
+              />
             </>
           )}
 

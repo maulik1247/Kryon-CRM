@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { useIsMobile } from "@/hooks/use-is-mobile";
+import { BarChartSkeleton } from "@/components/shared/chart-card-skeleton";
 import {
   Bar,
   BarChart,
@@ -55,14 +56,6 @@ type ConfidenceChartDatum = {
   count: number;
   color: string;
 };
-
-function ChartSkeleton({ className }: { className?: string }) {
-  return (
-    <div
-      className={`w-full animate-pulse rounded-lg bg-muted/40 ${className ?? ""}`}
-    />
-  );
-}
 
 function ConfidenceChartDesktop({
   data,
@@ -203,7 +196,7 @@ function ConfidenceChartMobile({
 }
 
 export function DealConfidenceChart() {
-  const pathname = usePathname();
+  const isMobile = useIsMobile();
   const { currentUser, users } = useAuth();
   const { deals, pipelineStages } = useCrmData();
   const [ready, setReady] = React.useState(false);
@@ -213,23 +206,28 @@ export function DealConfidenceChart() {
     [deals, currentUser, users]
   );
 
-  const data = getOpenDealsByConfidence(visibleDeals, pipelineStages).map(
-    (item) => ({
-      label: item.label,
-      count: item.count,
-      color: item.color,
-    })
+  const data = React.useMemo(
+    () =>
+      getOpenDealsByConfidence(visibleDeals, pipelineStages).map((item) => ({
+        label: item.label,
+        count: item.count,
+        color: item.color,
+      })),
+    [visibleDeals, pipelineStages]
   );
 
-  const totalDeals = data.reduce((sum, item) => sum + item.count, 0);
-  const chartKey = `${pathname}-${currentUser.id}-${data.map((d) => d.count).join("-")}`;
+  const totalDeals = React.useMemo(
+    () => data.reduce((sum, item) => sum + item.count, 0),
+    [data]
+  );
+  const chartKey = `${currentUser.id}-${data.map((d) => d.count).join("-")}`;
   const mobileChartHeight = Math.max(180, data.length * CHART_MOBILE_BAR_HEIGHT + 16);
 
   React.useEffect(() => {
     setReady(false);
     const frame = requestAnimationFrame(() => setReady(true));
     return () => cancelAnimationFrame(frame);
-  }, [pathname, data.length]);
+  }, [data.length, isMobile]);
 
   return (
     <Card className="flex h-full w-full flex-col">
@@ -245,44 +243,33 @@ export function DealConfidenceChart() {
       </CardHeader>
       <CardContent className="w-full flex-1 pt-0">
         <div
-          className="w-full md:hidden"
-          style={{ height: mobileChartHeight }}
+          className="w-full"
+          style={{
+            height: isMobile ? mobileChartHeight : CHART_DESKTOP_HEIGHT,
+          }}
         >
           {ready ? (
             data.length > 0 ? (
-              <ConfidenceChartMobile
-                data={data}
-                chartKey={chartKey}
-                totalDeals={totalDeals}
-              />
+              isMobile ? (
+                <ConfidenceChartMobile
+                  data={data}
+                  chartKey={chartKey}
+                  totalDeals={totalDeals}
+                />
+              ) : (
+                <ConfidenceChartDesktop
+                  data={data}
+                  chartKey={chartKey}
+                  totalDeals={totalDeals}
+                />
+              )
             ) : (
               <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No open deals to show yet.
               </p>
             )
           ) : (
-            <ChartSkeleton className="h-full" />
-          )}
-        </div>
-
-        <div
-          className="hidden w-full md:block"
-          style={{ height: CHART_DESKTOP_HEIGHT }}
-        >
-          {ready ? (
-            data.length > 0 ? (
-              <ConfidenceChartDesktop
-                data={data}
-                chartKey={chartKey}
-                totalDeals={totalDeals}
-              />
-            ) : (
-              <p className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                No open deals to show yet.
-              </p>
-            )
-          ) : (
-            <ChartSkeleton className="h-full" />
+            <BarChartSkeleton className="h-full" />
           )}
         </div>
       </CardContent>

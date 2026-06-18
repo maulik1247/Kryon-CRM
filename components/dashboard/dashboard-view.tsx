@@ -1,13 +1,35 @@
 "use client";
 
+import dynamic from "next/dynamic";
+import { ChartCardSkeleton } from "@/components/shared/chart-card-skeleton";
 import { useAuth } from "@/lib/auth-provider";
 import { KpiCards } from "@/components/dashboard/kpi-cards";
-import { PipelineChart } from "@/components/dashboard/pipeline-chart";
-import { DealConfidenceChart } from "@/components/dashboard/deal-confidence-chart";
 import { StuckDealsCard } from "@/components/dashboard/stuck-deals-card";
 import { DueThisWeekCard } from "@/components/dashboard/due-this-week-card";
 import { DashboardTasksCard } from "@/components/dashboard/dashboard-tasks-card";
 import { MyActivitiesCard } from "@/components/dashboard/my-activities-card";
+
+const PipelineChart = dynamic(
+  () =>
+    import("@/components/dashboard/pipeline-chart").then(
+      (mod) => mod.PipelineChart
+    ),
+  {
+    loading: () => <ChartCardSkeleton />,
+    ssr: false,
+  }
+);
+
+const DealConfidenceChart = dynamic(
+  () =>
+    import("@/components/dashboard/deal-confidence-chart").then(
+      (mod) => mod.DealConfidenceChart
+    ),
+  {
+    loading: () => <ChartCardSkeleton />,
+    ssr: false,
+  }
+);
 
 export function DashboardView() {
   const { isAdmin } = useAuth();

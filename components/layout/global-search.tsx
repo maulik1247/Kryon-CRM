@@ -108,23 +108,12 @@ export function GlobalSearch() {
   const inputRef = React.useRef<HTMLInputElement>(null);
   const itemRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
 
-  const groups = React.useMemo(
-    () =>
-      runGlobalSearch({
-        query,
-        customers,
-        contacts,
-        deals,
-        products,
-        suppliers,
-        dealTasks,
-        dealActivities,
-        pipelineStages,
-        getCustomerById,
-        currentUser,
-        users,
-      }),
-    [
+  const groups = React.useMemo(() => {
+    if (!open || query.trim().length < 2) {
+      return [];
+    }
+
+    return runGlobalSearch({
       query,
       customers,
       contacts,
@@ -137,8 +126,22 @@ export function GlobalSearch() {
       getCustomerById,
       currentUser,
       users,
-    ]
-  );
+    });
+  }, [
+    open,
+    query,
+    customers,
+    contacts,
+    deals,
+    products,
+    suppliers,
+    dealTasks,
+    dealActivities,
+    pipelineStages,
+    getCustomerById,
+    currentUser,
+    users,
+  ]);
 
   const flatResults = React.useMemo(
     () => groups.flatMap((group) => group.results),

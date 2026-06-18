@@ -153,6 +153,31 @@ export function getNextOpenTaskForDeal(tasks: DealTask[], dealId: string) {
   );
 }
 
+export function buildNextOpenTaskByDealId(tasks: DealTask[]) {
+  const grouped = new Map<string, DealTask[]>();
+
+  for (const task of tasks) {
+    const bucket = grouped.get(task.dealId);
+    if (bucket) {
+      bucket.push(task);
+    } else {
+      grouped.set(task.dealId, [task]);
+    }
+  }
+
+  const result = new Map<string, DealTask>();
+  grouped.forEach((dealTasks, dealId) => {
+    const next = dealTasks
+      .sort(compareTasksByStatusAndDueDate)
+      .find((task) => isTaskOpen(task.status));
+    if (next) {
+      result.set(dealId, next);
+    }
+  });
+
+  return result;
+}
+
 export function getThisWeekTasks(
   deals: Deal[],
   tasks: DealTask[],

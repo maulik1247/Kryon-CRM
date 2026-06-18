@@ -1,6 +1,6 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import * as React from "react";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getDashboardKPIs } from "@/lib/deal-helpers";
@@ -16,60 +16,62 @@ import {
   AlertTriangle,
   ListTodo,
 } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function KpiCards() {
+export const KpiCards = React.memo(function KpiCards() {
   const { currentUser, users } = useAuth();
   const { deals, dealTasks, pipelineStages } = useCrmData();
 
-  const visibleDeals = filterDealsForUser(deals, currentUser, users);
-  const kpis = getDashboardKPIs(visibleDeals, pipelineStages);
-
-  const openTasks = filterTasksForUser(dealTasks, currentUser, users, deals)
-    .filter((task) => isTaskOpen(task.status)).length;
-
   const seesAllDeals = canViewAllDeals(currentUser.role);
 
-  const cards = seesAllDeals
-    ? [
-        {
-          title: "Active Leads",
-          info: HELP.activeLeads,
-          value: kpis.activeLeads.toString(),
-          icon: Users,
-        },
-        {
-          title: "Pipeline Value",
-          info: HELP.pipelineValue,
-          value: formatCurrencyCr(kpis.pipelineValue),
-          icon: IndianRupee,
-        },
-        {
-          title: "Stuck Deals",
-          info: HELP.stuckDeals,
-          value: kpis.stuckDeals.toString(),
-          icon: AlertTriangle,
-        },
-      ]
-    : [
-        {
-          title: "My Active Deals",
-          info: HELP.myActiveDeals,
-          value: kpis.activeLeads.toString(),
-          icon: Users,
-        },
-        {
-          title: "My Pipeline Value",
-          info: HELP.myPipelineValue,
-          value: formatCurrencyCr(kpis.pipelineValue),
-          icon: IndianRupee,
-        },
-        {
-          title: "My Open Tasks",
-          info: HELP.myOpenTasks,
-          value: openTasks.toString(),
-          icon: ListTodo,
-        },
-      ];
+  const cards = React.useMemo(() => {
+    const visibleDeals = filterDealsForUser(deals, currentUser, users);
+    const kpis = getDashboardKPIs(visibleDeals, pipelineStages);
+    const openTasks = filterTasksForUser(dealTasks, currentUser, users, deals)
+      .filter((task) => isTaskOpen(task.status)).length;
+
+    return seesAllDeals
+      ? [
+          {
+            title: "Active Leads",
+            info: HELP.activeLeads,
+            value: kpis.activeLeads.toString(),
+            icon: Users,
+          },
+          {
+            title: "Pipeline Value",
+            info: HELP.pipelineValue,
+            value: formatCurrencyCr(kpis.pipelineValue),
+            icon: IndianRupee,
+          },
+          {
+            title: "Stuck Deals",
+            info: HELP.stuckDeals,
+            value: kpis.stuckDeals.toString(),
+            icon: AlertTriangle,
+          },
+        ]
+      : [
+          {
+            title: "My Active Deals",
+            info: HELP.myActiveDeals,
+            value: kpis.activeLeads.toString(),
+            icon: Users,
+          },
+          {
+            title: "My Pipeline Value",
+            info: HELP.myPipelineValue,
+            value: formatCurrencyCr(kpis.pipelineValue),
+            icon: IndianRupee,
+          },
+          {
+            title: "My Open Tasks",
+            info: HELP.myOpenTasks,
+            value: openTasks.toString(),
+            icon: ListTodo,
+          },
+        ];
+  }, [currentUser, users, deals, dealTasks, pipelineStages, seesAllDeals]);
 
   return (
     <div className="grid gap-4 sm:grid-cols-3">
@@ -93,4 +95,4 @@ export function KpiCards() {
       })}
     </div>
   );
-}
+});

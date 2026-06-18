@@ -133,6 +133,10 @@
     animation: page-enter var(--motion-duration-slow) var(--motion-ease-out) both;
   }
 
+  .page-enter-fast {
+    animation: page-enter var(--motion-duration-fast) var(--motion-ease-out) both;
+  }
+
   .interactive-lift {
     @apply transition-smooth;
   }

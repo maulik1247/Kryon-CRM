@@ -32,6 +32,8 @@ import { useRecordNavigation } from "@/hooks/use-record-navigation";
 import { InfoLabel } from "@/components/shared/info-tip";
 import { HELP } from "@/lib/help-content";
 import { TasksMobileList } from "@/components/tasks/tasks-mobile-list";
+import { useCrmLookups } from "@/hooks/use-crm-lookups";
+import { useTaskDisplayHelpers } from "@/hooks/use-task-display";
 import { canViewAllDeals } from "@/lib/role-permissions";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -52,8 +54,15 @@ export function TasksView() {
     deals,
     updateDealTaskStatus,
     deleteDealTask,
-    getCustomerById,
   } = useCrmData();
+  const { dealById, customerNameByDealId } = useCrmLookups();
+  const {
+    customerNameByDealIdFn,
+    addedByName,
+    assignedToName,
+    isOverdue,
+    todayStart,
+  } = useTaskDisplayHelpers();
   const { goToTask, goToDeal } = useRecordNavigation();
 
   const [filter, setFilter] = React.useState<TaskFilter>("open");
@@ -79,12 +88,12 @@ export function TasksView() {
     setPage,
   } = usePagination(tasks, 10, filter);
 
-  const openDeal = (dealId: string) => {
-    goToDeal(dealId);
-  };
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const openDeal = React.useCallback(
+    (dealId: string) => {
+      goToDeal(dealId);
+    },
+    [goToDeal]
+  );
 
   return (
     <>
@@ -154,17 +163,10 @@ export function TasksView() {
         <>
           <TasksMobileList
             tasks={paginatedItems}
-            customerNameByDealId={(dealId) => {
-              const deal = deals.find((entry) => entry.id === dealId);
-              return deal ? getCustomerById(deal.customerId)?.name : undefined;
-            }}
-            addedByName={(userId) => getUserName(users, userId)}
-            assignedToName={(userId) => getUserName(users, userId)}
-            isOverdue={(task) => {
-              const dueDate = new Date(`${task.dueDate}T00:00:00`);
-              dueDate.setHours(0, 0, 0, 0);
-              return isTaskOpen(task.status) && dueDate < today;
-            }}
+            customerNameByDealId={customerNameByDealIdFn}
+            addedByName={addedByName}
+            assignedToName={assignedToName}
+            isOverdue={isOverdue}
             onOpenTask={goToTask}
             onOpenDeal={openDeal}
             onStatusChange={updateDealTaskStatus}
@@ -229,16 +231,12 @@ export function TasksView() {
                 </TableRow>
               ) : (
                 paginatedItems.map((task) => {
-                  const deal = deals.find(
-                    (entry) => entry.id === task.dealId
-                  );
-                  const customer = deal
-                    ? getCustomerById(deal.customerId)
-                    : undefined;
-                  const dueDate = new Date(`${task.dueDate}T00:00:00`);
-                  dueDate.setHours(0, 0, 0, 0);
-                  const isOverdue =
-                    isTaskOpen(task.status) && dueDate < today;
+                  const customerName =
+                    customerNameByDealId.get(task.dealId) ?? "—";
+                  const deal = dealById.get(task.dealId);
+                  const isTaskOverdue =
+                    isTaskOpen(task.status) &&
+                    new Date(`${task.dueDate}T00:00:00`).getTime() < todayStart;
 
                   return (
                     <TableRow
@@ -289,13 +287,13 @@ export function TasksView() {
                       <TableCell
                         className={cn(
                           "whitespace-nowrap",
-                          isOverdue && "text-destructive"
+                          isTaskOverdue && "text-destructive"
                         )}
                       >
                         {formatDate(task.dueDate)}
                       </TableCell>
                       <TableCell className="max-w-[180px] truncate">
-                        {customer?.name ?? "—"}
+                        {customerName}
                       </TableCell>
                       <TableCell
                         className="whitespace-nowrap text-primary underline-offset-4 hover:underline"

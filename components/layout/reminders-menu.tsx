@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import Link from "next/link";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -8,10 +9,13 @@ import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { getUnreadReminderCount } from "@/lib/reminder-helpers";
 
-export function RemindersMenu() {
+export const RemindersMenu = React.memo(function RemindersMenu() {
   const { currentUser } = useAuth();
   const { reminders } = useCrmData();
-  const unreadCount = getUnreadReminderCount(reminders, currentUser.id);
+  const unreadCount = React.useMemo(
+    () => getUnreadReminderCount(reminders, currentUser.id),
+    [reminders, currentUser.id]
+  );
 
   return (
     <Button
@@ -30,4 +34,4 @@ export function RemindersMenu() {
       </Link>
     </Button>
   );
-}
+});

@@ -38,6 +38,7 @@ import {
   notifyUpdated,
 } from "@/lib/crm-notifications";
 import { CrmBootstrapLoader } from "@/components/crm/crm-bootstrap-loader";
+import { buildEntityMap } from "@/lib/entity-maps";
 import type {
   Customer,
   Contact,
@@ -1216,34 +1217,54 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
     [deals, pipelineStages]
   );
 
-  const getCustomerById = React.useCallback(
-    (id: string) => customers.find((c) => c.id === id),
+  const customerMap = React.useMemo(
+    () => buildEntityMap(customers),
     [customers]
+  );
+  const contactMap = React.useMemo(() => buildEntityMap(contacts), [contacts]);
+  const productMap = React.useMemo(() => buildEntityMap(products), [products]);
+  const supplierMap = React.useMemo(
+    () => buildEntityMap(suppliers),
+    [suppliers]
+  );
+  const dealMap = React.useMemo(() => buildEntityMap(deals), [deals]);
+  const stageMap = React.useMemo(
+    () => buildEntityMap(pipelineStages),
+    [pipelineStages]
+  );
+  const documentExchangeMap = React.useMemo(
+    () => buildEntityMap(documentExchanges),
+    [documentExchanges]
+  );
+
+  const getCustomerById = React.useCallback(
+    (id: string) => customerMap.get(id),
+    [customerMap]
   );
 
   const getContactById = React.useCallback(
-    (id: string) => contacts.find((c) => c.id === id),
-    [contacts]
+    (id: string) => contactMap.get(id),
+    [contactMap]
   );
 
   const getProductById = React.useCallback(
-    (id: string) => products.find((p) => p.id === id),
-    [products]
+    (id: string) => productMap.get(id),
+    [productMap]
   );
 
   const getSupplierById = React.useCallback(
-    (id: string) => suppliers.find((supplier) => supplier.id === id),
-    [suppliers]
+    (id: string) => supplierMap.get(id),
+    [supplierMap]
   );
 
   const getDealById = React.useCallback(
-    (id: string) => deals.find((d) => d.id === id),
-    [deals]
+    (id: string) => dealMap.get(id),
+    [dealMap]
   );
 
   const getStageById = React.useCallback(
-    (id: string) => pipelineStages.find((s) => s.id === id),
-    [pipelineStages]
+    (id: string) => stageMap.get(id),
+    [stageMap]
   );
 
   const getContactsByCustomerId = React.useCallback(
@@ -1257,8 +1278,8 @@ export function CrmDataProvider({ children }: { children: React.ReactNode }) {
   );
 
   const getDocumentExchangeById = React.useCallback(
-    (id: string) => documentExchanges.find((record) => record.id === id),
-    [documentExchanges]
+    (id: string) => documentExchangeMap.get(id),
+    [documentExchangeMap]
   );
 
   const getDocumentExchangesByDealId = React.useCallback(

@@ -122,6 +122,7 @@ export interface KanbanRootProps<T> extends HTMLAttributes<HTMLDivElement> {
   getItemValue: (item: T) => string
   children: ReactNode
   onMove?: (event: KanbanMoveEvent) => void
+  onDragStateChange?: (isDragging: boolean) => void
   asChild?: boolean
   modifiers?: Modifiers
 }
@@ -134,6 +135,7 @@ function Kanban<T>({
   className,
   asChild = false,
   onMove,
+  onDragStateChange,
   modifiers,
   ...props
 }: KanbanRootProps<T>) {
@@ -177,7 +179,8 @@ function Kanban<T>({
 
   const handleDragStart = useCallback((event: DragStartEvent) => {
     setActiveId(event.active.id)
-  }, [])
+    onDragStateChange?.(true)
+  }, [onDragStateChange])
 
   const handleDragOver = useCallback(
     (event: DragOverEvent) => {
@@ -245,12 +248,14 @@ function Kanban<T>({
 
   const handleDragCancel = useCallback(() => {
     setActiveId(null)
-  }, [])
+    onDragStateChange?.(false)
+  }, [onDragStateChange])
 
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const { active, over } = event
       setActiveId(null)
+      onDragStateChange?.(false)
 
       if (!over) return
 
@@ -332,6 +337,7 @@ function Kanban<T>({
       isColumn,
       setColumns,
       onMove,
+      onDragStateChange,
     ]
   )
 
@@ -368,7 +374,7 @@ function Kanban<T>({
         modifiers={modifiers}
         measuring={{
           droppable: {
-            strategy: MeasuringStrategy.Always,
+            strategy: MeasuringStrategy.WhileDragging,
           },
         }}
         onDragStart={handleDragStart}

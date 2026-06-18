@@ -1,50 +1,35 @@
 "use client";
 
+import * as React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { UserAvatar } from "@/components/shared/user-avatar";
-import { useCrmData } from "@/lib/crm-data-provider";
-import { formatDealProductsSummary } from "@/lib/deal-form-helpers";
-import { getNextOpenTaskForDeal } from "@/lib/deal-helpers";
+import type { DealCardDisplay } from "@/lib/deal-card-display";
 import type { Deal } from "@/lib/types";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import { GripVertical } from "lucide-react";
 
 interface DealCardProps {
   deal: Deal;
+  display: DealCardDisplay;
   onClick?: () => void;
   isOverlay?: boolean;
   showHandle?: boolean;
 }
 
-export function DealCard({
+export const DealCard = React.memo(function DealCard({
   deal,
+  display,
   onClick,
   isOverlay,
   showHandle = true,
 }: DealCardProps) {
-  const { getCustomerById, getProductById, getSupplierById, dealTasks } =
-    useCrmData();
-  const customer = getCustomerById(deal.customerId);
-  const productsSummary = formatDealProductsSummary(
-    deal.lineItems,
-    getProductById
-  );
-  const primarySupplier = deal.lineItems[0]
-    ? getSupplierById(deal.lineItems[0].currentSupplierId)
-    : undefined;
-  const multipleSuppliers = new Set(
-    deal.lineItems.map((item) => item.currentSupplierId)
-  ).size > 1;
-  const nextTask = getNextOpenTaskForDeal(dealTasks, deal.id);
-
   return (
     <Card
       className={cn(
         "w-full border-border/60 bg-card shadow-sm transition-smooth",
         isOverlay && "shadow-lg ring-1 ring-primary/20 scale-[1.02]",
-        !isOverlay &&
-          "interactive-lift hover:border-border hover:shadow-md"
+        !isOverlay && "interactive-lift hover:border-border hover:shadow-md"
       )}
       onClick={onClick}
     >
@@ -56,15 +41,11 @@ export function DealCard({
             )}
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold leading-tight">
-                {customer?.name}
+                {display.customerName}
               </p>
               <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
-                {productsSummary}
-                {primarySupplier
-                  ? multipleSuppliers
-                    ? " · multiple suppliers"
-                    : ` · vs ${primarySupplier.name}`
-                  : ""}
+                {display.productsSummary}
+                {display.supplierSuffix}
               </p>
             </div>
           </div>
@@ -84,11 +65,13 @@ export function DealCard({
         </div>
 
         <div className="rounded-md border border-border/50 bg-muted/20 px-2.5 py-2">
-          {nextTask ? (
+          {display.nextTask ? (
             <>
-              <p className="line-clamp-1 text-xs font-medium">{nextTask.title}</p>
+              <p className="line-clamp-1 text-xs font-medium">
+                {display.nextTask.title}
+              </p>
               <p className="mt-0.5 text-[11px] text-muted-foreground">
-                Do by {formatDate(nextTask.dueDate)}
+                Do by {formatDate(display.nextTask.dueDate)}
               </p>
             </>
           ) : (
@@ -98,4 +81,4 @@ export function DealCard({
       </CardContent>
     </Card>
   );
-}
+});

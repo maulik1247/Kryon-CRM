@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
 import { DealCard } from "./deal-card";
+import type { DealCardDisplay } from "@/lib/deal-card-display";
 import type { Deal, PipelineStageConfig } from "@/lib/types";
 
 function getDefaultStageId(
@@ -32,12 +33,14 @@ function getDefaultStageId(
 interface DealsMobileListProps {
   deals: Deal[];
   pipelineStages: PipelineStageConfig[];
-  onDealClick: (deal: Deal) => void;
+  cardDisplayByDealId: Map<string, DealCardDisplay>;
+  onDealClick: (dealId: string) => void;
 }
 
 export function DealsMobileList({
   deals,
   pipelineStages,
+  cardDisplayByDealId,
   onDealClick,
 }: DealsMobileListProps) {
   const defaultStageId = React.useMemo(
@@ -53,28 +56,36 @@ export function DealsMobileList({
     }
   }, [defaultStageId, pipelineStages, stageFilter]);
 
-  const filteredDeals = deals.filter((deal) => deal.stage === stageFilter);
+  const dealCountByStage = React.useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const deal of deals) {
+      counts.set(deal.stage, (counts.get(deal.stage) ?? 0) + 1);
+    }
+    return counts;
+  }, [deals]);
+
+  const filteredDeals = React.useMemo(
+    () => deals.filter((deal) => deal.stage === stageFilter),
+    [deals, stageFilter]
+  );
 
   if (!stageFilter) {
     return null;
   }
 
   return (
-    <div className="space-y-4 md:hidden">
+    <div className="space-y-4">
       <div className="space-y-3">
         <Select value={stageFilter} onValueChange={setStageFilter}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select stage" />
           </SelectTrigger>
           <SelectContent>
-            {pipelineStages.map((stage) => {
-              const count = deals.filter((deal) => deal.stage === stage.id).length;
-              return (
-                <SelectItem key={stage.id} value={stage.id}>
-                  {stage.name} ({count})
-                </SelectItem>
-              );
-            })}
+            {pipelineStages.map((stage) => (
+              <SelectItem key={stage.id} value={stage.id}>
+                {stage.name} ({dealCountByStage.get(stage.id) ?? 0})
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -92,8 +103,16 @@ export function DealsMobileList({
             <DealCard
               key={deal.id}
               deal={deal}
+              display={
+                cardDisplayByDealId.get(deal.id) ?? {
+                  customerName: "Unknown customer",
+                  productsSummary: "",
+                  supplierSuffix: "",
+                  nextTask: null,
+                }
+              }
               showHandle={false}
-              onClick={() => onDealClick(deal)}
+              onClick={() => onDealClick(deal.id)}
             />
           ))}
         </div>
