@@ -46,7 +46,7 @@ export function RecordFormPage({
         <Card className="space-y-4 border-border/60 p-6 shadow-sm">
           {children}
         </Card>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           {footer}
         </div>
       </form>
