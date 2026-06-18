@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
-import { FormSection } from "@/components/shared/form-section";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
@@ -199,7 +199,7 @@ export function ContactForm({ contactId }: ContactFormProps) {
         </>
       }
     >
-      <div className="space-y-8">
+      <FormSections>
         <FormSection title="Profile">
           <FormField label="Contact Name" htmlFor="contact-name">
             <Input
@@ -348,7 +348,7 @@ export function ContactForm({ contactId }: ContactFormProps) {
             />
           </FormField>
         </FormSection>
-      </div>
+      </FormSections>
     </RecordFormPage>
   );
 }

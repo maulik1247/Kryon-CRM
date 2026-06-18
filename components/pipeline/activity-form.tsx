@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { DatePicker } from "@/components/ui/date-picker";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
@@ -207,19 +206,17 @@ export function ActivityForm({ activityId, defaultDealId }: ActivityFormProps) {
           description={description}
         />
 
-        <Card className="space-y-4 border-border/60 p-6 shadow-sm">
-          <MeetingLogForm
-            activity={activity}
-            defaultDealId={defaultDealId}
-            formId={formId}
-            hideActions
-            submitLabel={isAdd ? "Save log" : "Save Changes"}
-            onViewDeal={viewDeal}
-            onSaved={handleMeetingSaved}
-          />
-        </Card>
+        <MeetingLogForm
+          activity={activity}
+          defaultDealId={defaultDealId}
+          formId={formId}
+          hideActions
+          submitLabel={isAdd ? "Save log" : "Save Changes"}
+          onViewDeal={viewDeal}
+          onSaved={handleMeetingSaved}
+        />
 
-        <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           {!isAdd ? (
             <DeleteRecordButton
               title="Delete activity?"
@@ -270,7 +267,7 @@ export function ActivityForm({ activityId, defaultDealId }: ActivityFormProps) {
         </>
       }
     >
-      <FormSection>
+      <FormSection title="Activity details">
         <FormField label="Type" htmlFor="activity-type">
           <FormSelect
             id="activity-type"

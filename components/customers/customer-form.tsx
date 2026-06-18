@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { FormSection } from "@/components/shared/form-section";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import {
@@ -254,7 +254,7 @@ export function CustomerForm({ customerId }: CustomerFormProps) {
       }
     >
       <Form {...form}>
-        <div className="space-y-8">
+        <FormSections>
           <FormSection title="Details">
                   <FormField
                     control={form.control}
@@ -568,7 +568,7 @@ export function CustomerForm({ customerId }: CustomerFormProps) {
               }
             />
           </FormSection>
-        </div>
+        </FormSections>
       </Form>
     </RecordFormPage>
   );

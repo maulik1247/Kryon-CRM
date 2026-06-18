@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { DeleteRecordButton } from "@/components/shared/delete-record-button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/shared/form-field";
-import { FormSection } from "@/components/shared/form-section";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { FormSelect } from "@/components/shared/form-select";
 import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
 import { RecordFormPage } from "@/components/records/record-form-page";
@@ -352,7 +352,7 @@ export function DealForm({ dealId }: DealFormProps) {
         </>
       }
     >
-      <div className="rounded-lg border border-border/60 bg-muted/30 p-4">
+      <FormSection title="Summary">
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <p className="text-xs text-muted-foreground">Customer</p>
@@ -369,9 +369,9 @@ export function DealForm({ dealId }: DealFormProps) {
             </p>
           </div>
         </div>
-      </div>
+      </FormSection>
 
-      <div className="space-y-8">
+      <FormSections>
         <FormSection title="Pipeline">
           <FormField label="Current stage" htmlFor="deal-stage" info={HELP.startingStage}>
             <FormSelect
@@ -462,7 +462,7 @@ export function DealForm({ dealId }: DealFormProps) {
             defaultAssigneeUserId={defaultAssigneeUserId}
           />
         </FormSection>
-      </div>
+      </FormSections>
     </RecordFormPage>
   );
 }

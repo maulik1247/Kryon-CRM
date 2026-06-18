@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
 import { RecordFormPage } from "@/components/records/record-form-page";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { useAuth } from "@/lib/auth-provider";
 import { useCrmData } from "@/lib/crm-data-provider";
 import { recordListRoutes, recordRoutes } from "@/lib/record-routes";
@@ -148,47 +149,53 @@ export function SupplierForm({ supplierId }: SupplierFormProps) {
         </>
       }
     >
-      <FormField label="Supplier name" htmlFor="supplier-name">
-        <Input
-          id="supplier-name"
-          required
-          value={form.name}
-          onChange={(e) => update("name", e.target.value)}
-          placeholder="e.g. Nidec India"
-        />
-      </FormField>
+      <FormSections>
+        <FormSection title="Identity">
+          <FormField label="Supplier name" htmlFor="supplier-name">
+            <Input
+              id="supplier-name"
+              required
+              value={form.name}
+              onChange={(e) => update("name", e.target.value)}
+              placeholder="e.g. Nidec India"
+            />
+          </FormField>
 
-      <FormField label="Type" htmlFor="supplier-type">
-        <FormSelect
-          id="supplier-type"
-          value={form.type}
-          onValueChange={(value) => update("type", value as SupplierType)}
-          options={SUPPLIER_TYPES.map((type) => ({
-            value: type,
-            label: type,
-          }))}
-        />
-      </FormField>
+          <FormField label="Type" htmlFor="supplier-type">
+            <FormSelect
+              id="supplier-type"
+              value={form.type}
+              onValueChange={(value) => update("type", value as SupplierType)}
+              options={SUPPLIER_TYPES.map((type) => ({
+                value: type,
+                label: type,
+              }))}
+            />
+          </FormField>
 
-      <FormField label="Country / region" htmlFor="supplier-region">
-        <Input
-          id="supplier-region"
-          required
-          value={form.region}
-          onChange={(e) => update("region", e.target.value)}
-          placeholder="e.g. India"
-        />
-      </FormField>
+          <FormField label="Country / region" htmlFor="supplier-region">
+            <Input
+              id="supplier-region"
+              required
+              value={form.region}
+              onChange={(e) => update("region", e.target.value)}
+              placeholder="e.g. India"
+            />
+          </FormField>
+        </FormSection>
 
-      <FormField label="Notes" htmlFor="supplier-notes" optional>
-        <Textarea
-          id="supplier-notes"
-          rows={3}
-          value={form.notes}
-          onChange={(e) => update("notes", e.target.value)}
-          placeholder="Market position, platforms served, etc."
-        />
-      </FormField>
+        <FormSection title="Notes">
+          <FormField label="Notes" htmlFor="supplier-notes" optional>
+            <Textarea
+              id="supplier-notes"
+              rows={3}
+              value={form.notes}
+              onChange={(e) => update("notes", e.target.value)}
+              placeholder="Market position, platforms served, etc."
+            />
+          </FormField>
+        </FormSection>
+      </FormSections>
     </RecordFormPage>
   );
 }

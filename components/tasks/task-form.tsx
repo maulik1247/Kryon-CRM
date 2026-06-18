@@ -203,7 +203,7 @@ export function TaskForm({ taskId, defaultDealId }: TaskFormProps) {
       }
     >
       {isAdd ? (
-        <FormSection>
+        <FormSection title="Task details">
           <FormField label="Added by" htmlFor="add-task-by">
             <p
               id="add-task-by"
@@ -257,7 +257,7 @@ export function TaskForm({ taskId, defaultDealId }: TaskFormProps) {
           />
         </FormSection>
       ) : (
-        <FormSection>
+        <FormSection title="Task details">
           {task ? (
             <FormField label="Task ID" htmlFor="task-id">
               <Input id="task-id" value={task.id} readOnly className="bg-muted/30 font-mono" />

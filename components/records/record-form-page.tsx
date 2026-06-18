@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 
 interface RecordFormPageProps {
   backHref: string;
@@ -42,11 +41,9 @@ export function RecordFormPage({
         ) : null}
       </div>
 
-      <form onSubmit={onSubmit} className="space-y-4">
-        <Card className="space-y-4 border-border/60 p-6 shadow-sm">
-          {children}
-        </Card>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <form onSubmit={onSubmit} className="space-y-5">
+        {children}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           {footer}
         </div>
       </form>

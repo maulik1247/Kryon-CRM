@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
-import { FormSection } from "@/components/shared/form-section";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { CustomerSearchSelect } from "@/components/shared/customer-search-select";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -225,7 +225,7 @@ export function DocumentExchangeForm({ recordId }: DocumentExchangeFormProps) {
         </>
       }
     >
-      <div className="space-y-8">
+      <FormSections>
         <FormSection title="Record">
           <FormField label="Customer" htmlFor="docx-customer">
             <CustomerSearchSelect
@@ -363,7 +363,7 @@ export function DocumentExchangeForm({ recordId }: DocumentExchangeFormProps) {
             />
           </FormField>
         </FormSection>
-      </div>
+      </FormSections>
     </RecordFormPage>
   );
 }

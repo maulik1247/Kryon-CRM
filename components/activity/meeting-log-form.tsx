@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
-import { FormSection } from "@/components/shared/form-section";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { UserMultiSelect } from "@/components/shared/user-multi-select";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -295,7 +295,7 @@ export function MeetingLogForm({
 
   return (
     <form id={formId} onSubmit={handleSubmit}>
-      <div className="space-y-8">
+      <FormSections>
         <FormSection title="Details">
           <FormField label="Record type" htmlFor="meeting-record-type">
             <FormSelect
@@ -669,7 +669,7 @@ export function MeetingLogForm({
             </FormField>
           ) : null}
         </FormSection>
-      </div>
+      </FormSections>
 
       {!hideActions ? (
         <div className="mt-4 flex justify-end">

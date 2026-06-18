@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/shared/form-field";
 import { FormSelect } from "@/components/shared/form-select";
-import { FormSection } from "@/components/shared/form-section";
+import { FormSection, FormSections } from "@/components/shared/form-section";
 import { DocumentFilesEditor } from "@/components/shared/document-files-editor";
 import { RecordFormPage } from "@/components/records/record-form-page";
 import { useAuth } from "@/lib/auth-provider";
@@ -204,7 +204,7 @@ export function ProductForm({ productId }: ProductFormProps) {
         </>
       }
     >
-      <div className="space-y-8">
+      <FormSections>
         <FormSection title="Identity">
           <FormField label="Product SKU / part number" htmlFor="sku">
             <Input
@@ -351,7 +351,7 @@ export function ProductForm({ productId }: ProductFormProps) {
             emptyMessage="No spec sheet uploaded."
           />
         </FormSection>
-      </div>
+      </FormSections>
     </RecordFormPage>
   );
 }
